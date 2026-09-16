@@ -1,0 +1,6 @@
+.worktrees/
+
+# Local build and tool outputs
+build/
+.tools/
+
