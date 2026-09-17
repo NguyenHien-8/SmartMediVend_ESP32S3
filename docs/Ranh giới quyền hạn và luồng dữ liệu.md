@@ -1,6 +1,6 @@
 ## Ranh giới quyền hạn và luồng dữ liệu
 
-flowchart TD
+```flowchart TD
     U[Người dùng nói] --> STT[STT/Xiaozhi]
     STT --> AI[AI hội thoại và trích xuất]
     AI --> V[Kiểm tra schema nghiêm ngặt]
@@ -14,3 +14,4 @@ flowchart TD
     L --> M[Chọn kênh chính hoặc kênh dự phòng]
     M --> X[Relay LOW 500 ms tuần tự]
     X --> I[Trừ tồn kho ước tính và ghi nhật ký]
+```
