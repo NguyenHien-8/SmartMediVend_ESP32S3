@@ -11,8 +11,11 @@ add_executable(smv_host_tests
   test_main.cpp
   test_app_types.cpp
   test_catalog.cpp
+  test_input_safety.cpp
   ../../SmartMediVend/src/medical/MedicineCatalog.cpp
   ../../SmartMediVend/src/medical/PharmacistGate.cpp
+  ../../SmartMediVend/src/medical/StructuredInputValidator.cpp
+  ../../SmartMediVend/src/medical/SafetyPolicy.cpp
 )
 
 target_include_directories(smv_host_tests PRIVATE
