@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "catalog_version": "catalog-2026-09-17",
+  "dispense_unit": "sealed_blister",
+  "tablets_per_blister": null,
+  "initial_stock_unit": "blister",
+  "slots": [
+    {"channel": 0, "sku": "SMV-PARA500", "canonical_id": "PARACETAMOL_500", "name": "Paracetamol 500", "active_ingredient": "Paracetamol", "strength": "500 mg", "symptom_group": "Sốt, nhức đầu, đau mỏi nhẹ", "initial_stock": 5, "backup_of_channel": null},
+    {"channel": 1, "sku": "SMV-IBU200", "canonical_id": "IBUPROFEN_200", "name": "Ibuprofen 200", "active_ingredient": "Ibuprofen", "strength": "200 mg", "symptom_group": "Đau/viêm nhẹ khi đủ điều kiện an toàn", "initial_stock": 5, "backup_of_channel": null},
+    {"channel": 2, "sku": "SMV-LOR10", "canonical_id": "LORATADINE_10", "name": "Loratadine 10", "active_ingredient": "Loratadine", "strength": "10 mg", "symptom_group": "Dị ứng, hắt hơi, sổ mũi do dị ứng", "initial_stock": 5, "backup_of_channel": null},
+    {"channel": 3, "sku": "SMV-DXM15", "canonical_id": "DEXTROMETHORPHAN_15", "name": "Dextromethorphan 15", "active_ingredient": "Dextromethorphan HBr", "strength": "15 mg", "symptom_group": "Ho khan", "initial_stock": 5, "backup_of_channel": null},
+    {"channel": 4, "sku": "SMV-AMB30", "canonical_id": "AMBROXOL_30", "name": "Ambroxol 30", "active_ingredient": "Ambroxol HCl", "strength": "30 mg", "symptom_group": "Ho có đờm", "initial_stock": 5, "backup_of_channel": null},
+    {"channel": 5, "sku": "SMV-DEQ025", "canonical_id": "DEQUALINIUM_025", "name": "Dequalinium 0.25", "active_ingredient": "Dequalinium chloride", "strength": "0.25 mg viên ngậm", "symptom_group": "Đau/rát họng nhẹ", "initial_stock": 5, "backup_of_channel": null},
+    {"channel": 6, "sku": "SMV-SIM80", "canonical_id": "SIMETHICONE_80", "name": "Simethicone 80", "active_ingredient": "Simethicone", "strength": "80 mg", "symptom_group": "Đầy hơi, chướng bụng", "initial_stock": 5, "backup_of_channel": null},
+    {"channel": 7, "sku": "SMV-ANTACID", "canonical_id": "ANTACID_200_200", "name": "Antacid chewable", "active_ingredient": "Aluminium hydroxide + Magnesium hydroxide", "strength": "ví dụ 200 mg + 200 mg", "symptom_group": "Ợ nóng, khó tiêu acid", "initial_stock": 5, "backup_of_channel": null},
+    {"channel": 8, "sku": "SMV-OME10", "canonical_id": "OMEPRAZOLE_10", "name": "Omeprazole 10", "active_ingredient": "Omeprazole", "strength": "10 mg", "symptom_group": "Ợ nóng/trào ngược ngắn hạn", "initial_stock": 5, "backup_of_channel": null},
+    {"channel": 9, "sku": "SMV-LOP2", "canonical_id": "LOPERAMIDE_2", "name": "Loperamide 2", "active_ingredient": "Loperamide HCl", "strength": "2 mg", "symptom_group": "Tiêu chảy cấp dạng nước có chọn lọc", "initial_stock": 5, "backup_of_channel": null},
+    {"channel": 10, "sku": "SMV-BIS5", "canonical_id": "BISACODYL_5", "name": "Bisacodyl 5", "active_ingredient": "Bisacodyl", "strength": "5 mg", "symptom_group": "Táo bón ngắn hạn", "initial_stock": 5, "backup_of_channel": null},
+    {"channel": 11, "sku": "SMV-DIM50", "canonical_id": "DIMENHYDRINATE_50", "name": "Dimenhydrinate 50", "active_ingredient": "Dimenhydrinate", "strength": "50 mg", "symptom_group": "Say xe", "initial_stock": 5, "backup_of_channel": null},
+    {"channel": 12, "sku": "SMV-SB250", "canonical_id": "S_BOULARDII_250", "name": "Saccharomyces boulardii 250", "active_ingredient": "Saccharomyces boulardii", "strength": "ví dụ 250 mg", "symptom_group": "Hỗ trợ rối loạn tiêu hóa/tiêu chảy", "initial_stock": 5, "backup_of_channel": null},
+    {"channel": 13, "sku": "SMV-PARA500-B", "canonical_id": "PARACETAMOL_500", "name": "Paracetamol 500", "active_ingredient": "Paracetamol", "strength": "500 mg", "symptom_group": "Kênh dự phòng cho channel 0", "initial_stock": 5, "backup_of_channel": 0},
+    {"channel": 14, "sku": "SMV-DXM15-B", "canonical_id": "DEXTROMETHORPHAN_15", "name": "Dextromethorphan 15", "active_ingredient": "Dextromethorphan HBr", "strength": "15 mg", "symptom_group": "Kênh dự phòng cho channel 3", "initial_stock": 5, "backup_of_channel": 3},
+    {"channel": 15, "sku": "SMV-ANTACID-B", "canonical_id": "ANTACID_200_200", "name": "Antacid chewable", "active_ingredient": "Aluminium hydroxide + Magnesium hydroxide", "strength": "cùng SKU channel 7", "symptom_group": "Kênh dự phòng cho channel 7", "initial_stock": 5, "backup_of_channel": 7}
+  ]
+}

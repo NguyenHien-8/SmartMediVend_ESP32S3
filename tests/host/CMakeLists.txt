@@ -10,6 +10,9 @@ enable_testing()
 add_executable(smv_host_tests
   test_main.cpp
   test_app_types.cpp
+  test_catalog.cpp
+  ../../SmartMediVend/src/medical/MedicineCatalog.cpp
+  ../../SmartMediVend/src/medical/PharmacistGate.cpp
 )
 
 target_include_directories(smv_host_tests PRIVATE

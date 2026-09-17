@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "rules_version": "rules-2026-09-17",
+  "status": "PHARMACIST_REVIEW_REQUIRED",
+  "scope": {
+    "minimum_age_years": 16,
+    "pregnancy_or_breastfeeding_supported": false,
+    "missing_data_policy": "NEED_MORE_INFO_THEN_NO_VEND",
+    "maximum_medicines_per_transaction": 3,
+    "maximum_blisters_per_medicine": 1,
+    "diagnosis_claims_allowed": false
+  },
+  "global_required_fields": ["age_years", "weight_kg", "pregnancy_or_breastfeeding", "symptoms", "duration_hours", "danger_signs", "conditions", "current_medicines", "drug_allergies"],
+  "global_danger_signs": ["difficulty_breathing", "chest_pain", "confusion", "fainting", "seizure", "weakness_or_speech_problem", "sudden_severe_headache", "stiff_neck", "coughing_blood", "vomiting_blood", "bloody_or_black_stool", "severe_abdominal_pain", "dehydration", "cannot_keep_fluids", "difficulty_swallowing", "drooling", "stridor", "unintentional_weight_loss", "rapidly_worsening"],
+  "medicine_rules": [
+    {"canonical_id": "PARACETAMOL_500", "symptoms": ["fever", "mild_headache", "mild_body_ache"], "refer_if": ["weight_below_50kg"], "exclude_if": ["liver_disease", "kidney_disease", "heavy_alcohol_use", "contains_paracetamol"]},
+    {"canonical_id": "IBUPROFEN_200", "symptoms": ["mild_inflammatory_pain"], "exclude_if": ["peptic_ulcer", "gastrointestinal_bleeding", "kidney_disease", "heart_disease", "liver_disease", "dehydration", "nsaid_allergy", "nsaid_asthma", "anticoagulant", "systemic_steroid", "other_nsaid"]},
+    {"canonical_id": "LORATADINE_10", "symptoms": ["allergic_rhinitis"], "refer_if": ["liver_disease"], "exclude_if": ["other_antihistamine"]},
+    {"canonical_id": "DEXTROMETHORPHAN_15", "symptoms": ["dry_cough"], "exclude_if": ["productive_cough", "chronic_cough", "asthma_or_copd", "maoi_within_14_days", "sedative"]},
+    {"canonical_id": "AMBROXOL_30", "symptoms": ["productive_cough"], "exclude_if": ["dry_cough_only", "dextromethorphan_selected", "serious_skin_or_mucosal_reaction"]},
+    {"canonical_id": "DEQUALINIUM_025", "symptoms": ["mild_sore_throat"], "exclude_if": ["difficulty_breathing", "difficulty_swallowing", "drooling", "stridor", "high_fever", "rapidly_worsening"]},
+    {"canonical_id": "SIMETHICONE_80", "symptoms": ["gas_bloating"], "refer_if": ["thyroid_treatment", "levothyroxine"]},
+    {"canonical_id": "ANTACID_200_200", "symptoms": ["acid_indigestion"], "refer_if": ["kidney_disease", "liver_disease", "heart_disease", "sodium_restriction", "current_medicine_requires_spacing"], "exclude_if": ["omeprazole_selected"]},
+    {"canonical_id": "OMEPRAZOLE_10", "minimum_age_years": 18, "symptoms": ["short_term_reflux"], "refer_if": ["age_16_or_17"], "exclude_if": ["alarm_symptom", "clopidogrel", "important_ppi_interaction"]},
+    {"canonical_id": "LOPERAMIDE_2", "symptoms": ["acute_watery_diarrhoea"], "exclude_if": ["fever", "dehydration", "bloody_stool", "antibiotic_associated_diarrhoea", "ibd_flare", "constipation", "abdominal_swelling", "duration_over_48_hours"]},
+    {"canonical_id": "BISACODYL_5", "minimum_age_years": 18, "symptoms": ["short_term_constipation"], "refer_if": ["age_16_or_17"], "exclude_if": ["dehydration", "abdominal_pain", "vomiting", "bowel_obstruction", "inflammatory_bowel_disease", "recent_antacid"]},
+    {"canonical_id": "DIMENHYDRINATE_50", "symptoms": ["motion_sickness"], "exclude_if": ["unexplained_nausea", "glaucoma", "chronic_respiratory_disease", "urination_difficulty", "alcohol", "sedative", "driving_or_operating_machinery"]},
+    {"canonical_id": "S_BOULARDII_250", "symptoms": ["digestive_support", "acute_watery_diarrhoea"], "exclude_if": ["immunocompromised", "critically_ill", "central_venous_catheter", "yeast_allergy"]}
+  ],
+  "sources": [
+    "https://www.nhs.uk/medicines/paracetamol-for-adults/",
+    "https://www.nhs.uk/medicines/ibuprofen-for-adults/",
+    "https://www.nhs.uk/medicines/loratadine/",
+    "https://dailymed.nlm.nih.gov/dailymed/getFile.cfm?setid=13ae4c67-a3fe-440c-91b8-c9412626c3cd&type=pdf",
+    "https://www.ema.europa.eu/en/medicines/human/referrals/ambroxol-bromhexine-containing-medicines",
+    "https://quest3plus.bpfk.gov.my/front-end/attachment/10182/pharma/525322/V_105132_20250325_152748_D4.pdf",
+    "https://www.nhs.uk/medicines/simeticone/",
+    "https://www.nhs.uk/medicines/antacids/",
+    "https://www.nhs.uk/medicines/omeprazole/",
+    "https://www.nhs.uk/medicines/loperamide/",
+    "https://www.nhs.uk/medicines/bisacodyl/",
+    "https://dailymed.nlm.nih.gov/dailymed/lookup.cfm?setid=3fd4a96f-8f69-42bf-b777-6e3a2bfea275",
+    "https://www.ema.europa.eu/en/documents/psusa/saccharomyces-boulardii-cmdh-scientific-conclusions-and-grounds-variation-amendments-product-information-and-timetable-implementation-psusa00009284201702_en.pdf"
+  ]
+}
