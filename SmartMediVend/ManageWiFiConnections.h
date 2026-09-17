@@ -7,7 +7,7 @@
 
 namespace smv {
 
-class WiFiManager {
+class ManageWiFiConnections {
  public:
   enum class UiState : uint8_t {
     Booting = 0,
@@ -19,7 +19,7 @@ class WiFiManager {
     Error
   };
 
-  WiFiManager() = default;
+  ManageWiFiConnections() = default;
 
   // Tries saved Wi-Fi once at boot. ESP32WiFiPortal keeps its own bounded,
   // cooperative Auto Reconnect policy after that.

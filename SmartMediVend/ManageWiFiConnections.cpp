@@ -1,4 +1,4 @@
-#include "WiFiManager.h"
+#include "ManageWiFiConnections.h"
 
 #include "AppConfig.h"
 #include "HardwarePins.h"
@@ -13,7 +13,7 @@ bool elapsed(uint32_t now, uint32_t since, uint32_t interval) {
 }
 }  // namespace
 
-bool WiFiManager::begin() {
+bool ManageWiFiConnections::begin() {
   pinMode(pins::BT_SETWIFI, INPUT);  // External 4.7 kOhm pull-down is fitted.
 
   _buttonRaw = (digitalRead(pins::BT_SETWIFI) == HIGH);
@@ -50,7 +50,7 @@ bool WiFiManager::begin() {
   return connected;
 }
 
-void WiFiManager::process() {
+void ManageWiFiConnections::process() {
   // ESP32WiFiPortal v2.1.2 uses this cooperative call for:
   // DNS/WebServer portal service, pending credentials, reconnect and backoff.
   _portal.process();
@@ -60,7 +60,7 @@ void WiFiManager::process() {
   syncUiState(now, false);
 }
 
-bool WiFiManager::requestConfigPortal() {
+bool ManageWiFiConnections::requestConfigPortal() {
   if (_portal.isPortalActive()) {
     return true;
   }
@@ -90,7 +90,7 @@ bool WiFiManager::requestConfigPortal() {
   return true;
 }
 
-uint8_t WiFiManager::configButtonHoldPercent() const {
+uint8_t ManageWiFiConnections::configButtonHoldPercent() const {
   if (!_buttonStable) {
     return 0;
   }
@@ -110,7 +110,7 @@ uint8_t WiFiManager::configButtonHoldPercent() const {
       (heldMs * 100UL) / config::WIFI_BUTTON_HOLD_MS);
 }
 
-void WiFiManager::processConfigButton(uint32_t now) {
+void ManageWiFiConnections::processConfigButton(uint32_t now) {
   const bool rawPressed = (digitalRead(pins::BT_SETWIFI) == HIGH);
 
   if (rawPressed != _buttonRaw) {
@@ -146,7 +146,7 @@ void WiFiManager::processConfigButton(uint32_t now) {
   }
 }
 
-void WiFiManager::syncUiState(uint32_t now, bool forceRefresh) {
+void ManageWiFiConnections::syncUiState(uint32_t now, bool forceRefresh) {
   if (_portalStartError) {
     if (!elapsed(now, _portalStartErrorAt, ERROR_VISIBLE_MS)) {
       setUiState(UiState::Error);
@@ -201,7 +201,7 @@ void WiFiManager::syncUiState(uint32_t now, bool forceRefresh) {
   }
 }
 
-void WiFiManager::refreshConnectedTelemetry(uint32_t now, bool forceRefresh) {
+void ManageWiFiConnections::refreshConnectedTelemetry(uint32_t now, bool forceRefresh) {
   if (!forceRefresh &&
       !elapsed(now, _lastTelemetryAt, config::WIFI_TELEMETRY_MS)) {
     return;
@@ -213,12 +213,12 @@ void WiFiManager::refreshConnectedTelemetry(uint32_t now, bool forceRefresh) {
   _rssi = WiFi.RSSI();
 }
 
-void WiFiManager::refreshPortalTelemetry() {
+void ManageWiFiConnections::refreshPortalTelemetry() {
   _portalSSID = _portal.portalSSID();
   _portalIP = _portal.portalIP();
 }
 
-void WiFiManager::setUiState(UiState state) {
+void ManageWiFiConnections::setUiState(UiState state) {
   if (_uiState == state) {
     return;
   }

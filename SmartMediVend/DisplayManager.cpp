@@ -24,6 +24,14 @@ constexpr uint16_t COLOR_YELLOW  = rgb565(255, 193, 74);
 constexpr uint16_t COLOR_RED     = rgb565(255, 91, 105);
 constexpr uint16_t COLOR_DIVIDER = rgb565(45, 61, 82);
 
+// Portrait 240x320 layout. Horizontal dimensions are derived from the
+// runtime TFT width so the UI never assumes a 320-pixel-wide canvas.
+constexpr int16_t HEADER_HEIGHT = 46;
+constexpr int16_t CARD_MARGIN_X = 10;
+constexpr int16_t CARD_TOP = 52;
+constexpr int16_t CARD_BOTTOM = 250;
+constexpr int16_t FOOTER_TOP = 263;
+
 bool elapsed(uint32_t now, uint32_t since, uint32_t interval) {
   return static_cast<uint32_t>(now - since) >= interval;
 }
@@ -47,8 +55,19 @@ bool DisplayManager::begin() {
 
   _tft.begin(config::TFT_SPI_FREQUENCY_HZ);
   _tft.setRotation(config::TFT_ROTATION);
-  _tft.fillScreen(COLOR_BG);
 
+  Serial.print(F("[SMV] TFT geometry: "));
+  Serial.print(_tft.width());
+  Serial.print('x');
+  Serial.print(_tft.height());
+  Serial.print(F(", rotation="));
+  Serial.println(config::TFT_ROTATION);
+
+  if (_tft.width() >= _tft.height()) {
+    Serial.println(F("[SMV] WARNING: portrait UI expects width < height"));
+  }
+
+  _tft.fillScreen(COLOR_BG);
   digitalWrite(pins::TFT_BL, backlightOn);
 
   _initialized = true;
@@ -61,29 +80,41 @@ void DisplayManager::showBootScreen() {
     return;
   }
 
+  const int16_t w = screenWidth();
+  const int16_t h = screenHeight();
+  const int16_t cx = w / 2;
+
   _tft.fillScreen(COLOR_BG);
 
-  _tft.fillRoundRect(96, 56, 128, 70, 18, COLOR_PANEL);
-  _tft.drawRoundRect(96, 56, 128, 70, 18, COLOR_DIVIDER);
+  const int16_t logoW = 110;
+  const int16_t logoH = 88;
+  const int16_t logoX = cx - logoW / 2;
+  const int16_t logoY = 56;
 
-  // Minimal capsule / medical mark.
-  _tft.fillRoundRect(135, 72, 50, 18, 9, COLOR_ACCENT);
-  _tft.fillRoundRect(151, 62, 18, 38, 9, COLOR_ACCENT);
+  _tft.fillRoundRect(logoX, logoY, logoW, logoH, 18, COLOR_PANEL);
+  _tft.drawRoundRect(logoX, logoY, logoW, logoH, 18, COLOR_DIVIDER);
 
-  centeredText(F("SmartMediVend"), 160, 145, 2, COLOR_TEXT);
-  centeredText(F("ESP32-S3"), 160, 172, 1, COLOR_MUTED);
-  centeredText(F("Starting system..."), 160, 203, 1, COLOR_MUTED);
+  // Minimal medical cross centered in the logo card.
+  _tft.fillRoundRect(cx - 28, logoY + 34, 56, 20, 8, COLOR_ACCENT);
+  _tft.fillRoundRect(cx - 10, logoY + 16, 20, 56, 8, COLOR_ACCENT);
+
+  centeredText(F("SmartMediVend"), cx, 174, 2, COLOR_TEXT, COLOR_BG);
+  centeredText(F("ESP32-S3"), cx, 207, 1, COLOR_MUTED, COLOR_BG);
+  centeredText(F("Starting system..."), cx, 236, 1, COLOR_MUTED, COLOR_BG);
+
+  _tft.drawFastHLine(20, h - 43, w - 40, COLOR_DIVIDER);
+  centeredText(F("240x320 PORTRAIT"), cx, h - 29, 1, COLOR_MUTED, COLOR_BG);
 
   _forceRefresh = true;
 }
 
-void DisplayManager::process(const WiFiManager& wifi) {
+void DisplayManager::process(const ManageWiFiConnections& wifi) {
   if (!_initialized) {
     return;
   }
 
   const uint32_t now = millis();
-  const WiFiManager::UiState state = wifi.uiState();
+  const ManageWiFiConnections::UiState state = wifi.uiState();
   const bool stateChanged = (state != _lastState);
 
   if (_forceRefresh || stateChanged) {
@@ -106,7 +137,7 @@ void DisplayManager::process(const WiFiManager& wifi) {
     _lastHoldPercent = holdPercent;
   }
 
-  if (state == WiFiManager::UiState::Connected) {
+  if (state == ManageWiFiConnections::UiState::Connected) {
     const uint8_t bars = rssiBars(wifi.rssi());
     if (bars != _lastRssiBars) {
       drawSignalBars(wifi.rssi());
@@ -114,8 +145,8 @@ void DisplayManager::process(const WiFiManager& wifi) {
     }
   }
 
-  if ((state == WiFiManager::UiState::Connecting ||
-       state == WiFiManager::UiState::PortalConnecting) &&
+  if ((state == ManageWiFiConnections::UiState::Connecting ||
+       state == ManageWiFiConnections::UiState::PortalConnecting) &&
       elapsed(now, _lastAnimationAt, config::TFT_ANIMATION_INTERVAL_MS)) {
     _lastAnimationAt = now;
     _spinnerStep = static_cast<uint8_t>((_spinnerStep + 1U) % 8U);
@@ -128,156 +159,158 @@ void DisplayManager::forceRefresh() {
 }
 
 void DisplayManager::drawStaticFrame() {
+  const int16_t w = screenWidth();
+  const int16_t cardW = w - 2 * CARD_MARGIN_X;
+  const int16_t cardH = CARD_BOTTOM - CARD_TOP;
+
   _tft.fillScreen(COLOR_BG);
+  _tft.fillRoundRect(CARD_MARGIN_X, CARD_TOP, cardW, cardH, 16, COLOR_PANEL);
+  _tft.drawRoundRect(CARD_MARGIN_X, CARD_TOP, cardW, cardH, 16,
+                     COLOR_DIVIDER);
 
-  _tft.fillRoundRect(10, 42, 300, 158, 16, COLOR_PANEL);
-  _tft.drawRoundRect(10, 42, 300, 158, 16, COLOR_DIVIDER);
-
-  _tft.drawFastHLine(18, 210, 284, COLOR_DIVIDER);
+  _tft.drawFastHLine(14, FOOTER_TOP, w - 28, COLOR_DIVIDER);
 }
 
-void DisplayManager::drawHeader(const WiFiManager& wifi) {
-  _tft.fillRect(0, 0, 320, 38, COLOR_BG);
+void DisplayManager::drawHeader(const ManageWiFiConnections& wifi) {
+  const int16_t w = screenWidth();
 
+  _tft.fillRect(0, 0, w, HEADER_HEIGHT, COLOR_BG);
   _tft.setTextWrap(false);
+
   _tft.setTextSize(2);
   _tft.setTextColor(COLOR_TEXT, COLOR_BG);
-  _tft.setCursor(12, 11);
+  _tft.setCursor(12, 8);
   _tft.print(F("SmartMediVend"));
 
   const uint16_t color = stateColor(wifi.uiState());
+  _tft.fillCircle(15, 34, 3, color);
 
-  _tft.fillCircle(241, 18, 4, color);
   _tft.setTextSize(1);
   _tft.setTextColor(color, COLOR_BG);
-  _tft.setCursor(250, 15);
+  _tft.setCursor(24, 31);
   _tft.print(badgeText(wifi.uiState()));
 }
 
-void DisplayManager::drawStatusCard(const WiFiManager& wifi) {
-  _tft.fillRoundRect(11, 43, 298, 156, 15, COLOR_PANEL);
-
+void DisplayManager::drawStatusCard(const ManageWiFiConnections& wifi) {
+  const int16_t w = screenWidth();
+  const int16_t cx = w / 2;
+  const int16_t cardW = w - 2 * CARD_MARGIN_X;
+  const int16_t cardH = CARD_BOTTOM - CARD_TOP;
   const uint16_t color = stateColor(wifi.uiState());
 
-  _tft.fillRoundRect(24, 58, 44, 44, 12, COLOR_PANEL_2);
-  _tft.drawRoundRect(24, 58, 44, 44, 12, color);
+  _tft.fillRoundRect(CARD_MARGIN_X + 1, CARD_TOP + 1,
+                     cardW - 2, cardH - 2, 15, COLOR_PANEL);
 
-  // Compact Wi-Fi glyph.
-  _tft.drawCircle(46, 83, 3, color);
-  _tft.drawCircle(46, 83, 9, color);
-  _tft.drawCircle(46, 83, 16, color);
-  // Cover lower halves to turn circles into arcs.
-  _tft.fillRect(25, 83, 43, 20, COLOR_PANEL_2);
-  _tft.fillCircle(46, 84, 3, color);
-
+  drawWiFiIcon(color);
   _tft.setTextWrap(false);
 
   switch (wifi.uiState()) {
-    case WiFiManager::UiState::Connecting:
-      leftTextClipped(F("Connecting Wi-Fi"), 82, 61, 2, COLOR_TEXT, 22);
-      leftTextClipped(F("Checking saved network..."), 82, 88, 1,
-                      COLOR_MUTED, 32);
-      leftTextClipped(F("Auto Reconnect stays enabled"), 24, 125, 1,
-                      COLOR_MUTED, 38);
+    case ManageWiFiConnections::UiState::Connecting:
+      centeredText(F("Connecting Wi-Fi"), cx, 132, 2, COLOR_TEXT, COLOR_PANEL);
+      centeredText(F("Checking saved network..."), cx, 160, 1,
+                   COLOR_MUTED, COLOR_PANEL);
+      centeredText(F("Auto Reconnect enabled"), cx, 188, 1,
+                   COLOR_MUTED, COLOR_PANEL);
       clearSpinnerArea();
       drawSpinner(_spinnerStep, color);
       break;
 
-    case WiFiManager::UiState::Connected: {
-      leftTextClipped(F("Wi-Fi connected"), 82, 61, 2, COLOR_TEXT, 22);
-      leftTextClipped(wifi.ssid(), 82, 88, 1, COLOR_MUTED, 30);
+    case ManageWiFiConnections::UiState::Connected: {
+      centeredText(F("Wi-Fi connected"), cx, 132, 2, COLOR_TEXT, COLOR_PANEL);
+      centeredText(wifi.ssid(), cx, 160, 1, COLOR_MUTED, COLOR_PANEL);
 
       String ipLine = F("IP: ");
       ipLine += wifi.localIP().toString();
-      leftTextClipped(ipLine, 24, 125, 1, COLOR_MUTED, 38);
+      leftTextClipped(ipLine, 24, 187, 1, COLOR_MUTED, COLOR_PANEL, 31);
 
-      leftTextClipped(F("Ready for SmartMediVend services"), 24, 151, 1,
-                      COLOR_ACCENT, 40);
-
+      leftTextClipped(F("System ready"), 24, 211, 1,
+                      COLOR_ACCENT, COLOR_PANEL, 31);
       drawSignalBars(wifi.rssi());
       break;
     }
 
-    case WiFiManager::UiState::Portal:
-      leftTextClipped(F("Wi-Fi setup portal"), 82, 61, 2, COLOR_TEXT, 23);
+    case ManageWiFiConnections::UiState::Portal: {
+      centeredText(F("Wi-Fi setup portal"), cx, 132, 2,
+                   COLOR_TEXT, COLOR_PANEL);
 
-      {
-        String apLine = F("AP: ");
-        apLine += wifi.portalSSID();
-        leftTextClipped(apLine, 82, 88, 1, COLOR_MUTED, 32);
+      String apLine = F("AP: ");
+      apLine += wifi.portalSSID();
+      leftTextClipped(apLine, 24, 161, 1, COLOR_MUTED, COLOR_PANEL, 31);
 
-        String openLine = F("Open: http://");
-        openLine += wifi.portalIP().toString();
-        leftTextClipped(openLine, 24, 125, 1, COLOR_BLUE, 39);
-      }
+      String openLine = F("Open: http://");
+      openLine += wifi.portalIP().toString();
+      leftTextClipped(openLine, 24, 187, 1, COLOR_BLUE, COLOR_PANEL, 31);
 
-      leftTextClipped(F("Choose a network in the captive portal"), 24, 151, 1,
-                      COLOR_MUTED, 42);
+      centeredText(F("Select Wi-Fi in portal"), cx, 218, 1,
+                   COLOR_MUTED, COLOR_PANEL);
       clearSpinnerArea();
       break;
+    }
 
-    case WiFiManager::UiState::PortalConnecting:
-      leftTextClipped(F("Applying Wi-Fi"), 82, 61, 2, COLOR_TEXT, 22);
-      leftTextClipped(F("Testing new credentials..."), 82, 88, 1,
-                      COLOR_MUTED, 32);
-      leftTextClipped(F("Keep the device powered on"), 24, 125, 1,
-                      COLOR_MUTED, 38);
+    case ManageWiFiConnections::UiState::PortalConnecting:
+      centeredText(F("Applying Wi-Fi"), cx, 132, 2, COLOR_TEXT, COLOR_PANEL);
+      centeredText(F("Testing new credentials..."), cx, 160, 1,
+                   COLOR_MUTED, COLOR_PANEL);
+      centeredText(F("Keep device powered"), cx, 188, 1,
+                   COLOR_MUTED, COLOR_PANEL);
       clearSpinnerArea();
       drawSpinner(_spinnerStep, color);
       break;
 
-    case WiFiManager::UiState::Error:
-      leftTextClipped(F("Wi-Fi setup error"), 82, 61, 2, COLOR_TEXT, 22);
-      leftTextClipped(wifi.lastError(), 24, 112, 1, COLOR_RED, 43);
-      leftTextClipped(F("Release button and try again"), 24, 151, 1,
-                      COLOR_MUTED, 40);
+    case ManageWiFiConnections::UiState::Error:
+      centeredText(F("Wi-Fi setup error"), cx, 132, 2, COLOR_TEXT, COLOR_PANEL);
+      leftTextClipped(wifi.lastError(), 24, 164, 1,
+                      COLOR_RED, COLOR_PANEL, 31);
+      centeredText(F("Release button and retry"), cx, 202, 1,
+                   COLOR_MUTED, COLOR_PANEL);
       clearSpinnerArea();
       break;
 
-    case WiFiManager::UiState::Offline:
-      leftTextClipped(F("Offline mode"), 82, 61, 2, COLOR_TEXT, 22);
-      leftTextClipped(F("Device remains operational"), 82, 88, 1,
-                      COLOR_MUTED, 32);
+    case ManageWiFiConnections::UiState::Offline:
+      centeredText(F("Offline mode"), cx, 132, 2, COLOR_TEXT, COLOR_PANEL);
+      centeredText(F("Device remains operational"), cx, 160, 1,
+                   COLOR_MUTED, COLOR_PANEL);
 
       if (wifi.lastError().length() > 0) {
-        leftTextClipped(wifi.lastError(), 24, 125, 1, COLOR_YELLOW, 43);
+        leftTextClipped(wifi.lastError(), 24, 187, 1,
+                        COLOR_YELLOW, COLOR_PANEL, 31);
       } else {
-        leftTextClipped(F("No active Wi-Fi connection"), 24, 125, 1,
-                        COLOR_YELLOW, 38);
+        centeredText(F("No active Wi-Fi"), cx, 187, 1,
+                     COLOR_YELLOW, COLOR_PANEL);
       }
 
-      leftTextClipped(F("Hold SET WIFI for 2 seconds"), 24, 151, 1,
-                      COLOR_MUTED, 40);
+      centeredText(F("Hold SET WIFI for 2s"), cx, 218, 1,
+                   COLOR_MUTED, COLOR_PANEL);
       clearSpinnerArea();
       break;
 
-    case WiFiManager::UiState::Booting:
+    case ManageWiFiConnections::UiState::Booting:
     default:
-      leftTextClipped(F("Starting..."), 82, 61, 2, COLOR_TEXT, 22);
-      leftTextClipped(F("Initializing services"), 82, 88, 1,
-                      COLOR_MUTED, 32);
+      centeredText(F("Starting..."), cx, 132, 2, COLOR_TEXT, COLOR_PANEL);
+      centeredText(F("Initializing services"), cx, 160, 1,
+                   COLOR_MUTED, COLOR_PANEL);
       clearSpinnerArea();
       break;
   }
 }
 
-void DisplayManager::drawFooter(const WiFiManager& wifi) {
-  _tft.fillRect(0, 211, 320, 29, COLOR_BG);
+void DisplayManager::drawFooter(const ManageWiFiConnections& wifi) {
+  const int16_t w = screenWidth();
+  const int16_t h = screenHeight();
+  const int16_t footerY = FOOTER_TOP + 1;
+  const int16_t footerH = h - footerY;
+
+  _tft.fillRect(0, footerY, w, footerH, COLOR_BG);
 
   const uint8_t percent = wifi.configButtonHoldPercent();
 
   if (wifi.isConfigButtonPressed() && percent > 0) {
-    _tft.setTextSize(1);
-    _tft.setTextColor(COLOR_TEXT, COLOR_BG);
-    _tft.setCursor(18, 216);
-    _tft.print(F("Hold to open Wi-Fi setup"));
-
+    centeredText(F("Hold to open Wi-Fi setup"), w / 2, 276, 1,
+                 COLOR_TEXT, COLOR_BG);
     drawHoldProgress(percent);
   } else {
-    _tft.setTextSize(1);
-    _tft.setTextColor(COLOR_MUTED, COLOR_BG);
-    _tft.setCursor(18, 220);
-    _tft.print(F("SET WIFI: hold 2s"));
+    centeredText(F("SET WIFI: hold 2s"), w / 2, 285, 1,
+                 COLOR_MUTED, COLOR_BG);
   }
 }
 
@@ -286,46 +319,51 @@ void DisplayManager::drawHoldProgress(uint8_t percent) {
     percent = 100;
   }
 
-  const int16_t x = 176;
-  const int16_t y = 217;
-  const int16_t w = 126;
-  const int16_t h = 8;
+  const int16_t w = screenWidth();
+  const int16_t x = 16;
+  const int16_t y = 301;
+  const int16_t barW = w - 32;
+  const int16_t barH = 10;
 
-  _tft.fillRoundRect(x, y, w, h, 4, COLOR_PANEL_2);
+  _tft.fillRoundRect(x, y, barW, barH, 5, COLOR_PANEL_2);
 
   const int16_t fillW =
-      static_cast<int16_t>((static_cast<uint32_t>(w) * percent) / 100UL);
+      static_cast<int16_t>((static_cast<uint32_t>(barW) * percent) / 100UL);
 
   if (fillW > 0) {
-    _tft.fillRoundRect(x, y, fillW, h, 4, COLOR_ACCENT);
+    _tft.fillRoundRect(x, y, fillW, barH, 5, COLOR_ACCENT);
   }
 }
 
 void DisplayManager::drawSignalBars(int32_t rssi) {
   const uint8_t bars = rssiBars(rssi);
+  const int16_t w = screenWidth();
 
-  const int16_t x = 246;
-  const int16_t y = 152;
-  const int16_t barW = 8;
-  const int16_t gap = 4;
+  const int16_t areaX = 118;
+  const int16_t areaY = 203;
+  const int16_t areaW = w - areaX - 22;
+  const int16_t areaH = 39;
 
-  _tft.fillRect(238, 120, 60, 62, COLOR_PANEL);
+  _tft.fillRect(areaX, areaY, areaW, areaH, COLOR_PANEL);
 
   _tft.setTextSize(1);
   _tft.setTextColor(COLOR_MUTED, COLOR_PANEL);
-  _tft.setCursor(242, 122);
+  _tft.setCursor(areaX, 211);
   _tft.print(rssi);
   _tft.print(F(" dBm"));
 
+  const int16_t firstBarX = w - 70;
+  const int16_t baseY = 236;
+  const int16_t barW = 7;
+  const int16_t gap = 4;
+
   for (uint8_t i = 0; i < 4; ++i) {
-    const int16_t h = static_cast<int16_t>(7 + i * 7);
-    const int16_t bx = x + i * (barW + gap);
-    const int16_t by = y + 25 - h;
+    const int16_t barH = static_cast<int16_t>(7 + i * 6);
+    const int16_t bx = firstBarX + i * (barW + gap);
+    const int16_t by = baseY - barH;
+    const uint16_t barColor = (i < bars) ? COLOR_ACCENT : COLOR_DIVIDER;
 
-    const uint16_t color =
-        (i < bars) ? COLOR_ACCENT : COLOR_DIVIDER;
-
-    _tft.fillRoundRect(bx, by, barW, h, 2, color);
+    _tft.fillRoundRect(bx, by, barW, barH, 2, barColor);
   }
 }
 
@@ -333,8 +371,8 @@ void DisplayManager::drawSpinner(uint8_t step, uint16_t color) {
   static const int8_t dx[8] = {0, 7, 10, 7, 0, -7, -10, -7};
   static const int8_t dy[8] = {-10, -7, 0, 7, 10, 7, 0, -7};
 
-  const int16_t cx = 274;
-  const int16_t cy = 165;
+  const int16_t cx = centerX();
+  const int16_t cy = 220;
 
   clearSpinnerArea();
 
@@ -358,27 +396,50 @@ void DisplayManager::drawSpinner(uint8_t step, uint16_t color) {
 }
 
 void DisplayManager::clearSpinnerArea() {
-  _tft.fillRect(258, 149, 34, 34, COLOR_PANEL);
+  _tft.fillRect(centerX() - 18, 202, 36, 36, COLOR_PANEL);
+}
+
+void DisplayManager::drawWiFiIcon(uint16_t color) {
+  const int16_t cx = centerX();
+  const int16_t iconY = 66;
+  const int16_t boxW = 60;
+  const int16_t boxH = 52;
+  const int16_t boxX = cx - boxW / 2;
+
+  _tft.fillRoundRect(boxX, iconY, boxW, boxH, 12, COLOR_PANEL_2);
+  _tft.drawRoundRect(boxX, iconY, boxW, boxH, 12, color);
+
+  const int16_t glyphY = iconY + 29;
+  _tft.drawCircle(cx, glyphY, 3, color);
+  _tft.drawCircle(cx, glyphY, 10, color);
+  _tft.drawCircle(cx, glyphY, 18, color);
+
+  // Hide the lower half of the circles, leaving clean Wi-Fi arcs.
+  _tft.fillRect(boxX + 7, glyphY, boxW - 14, 18, COLOR_PANEL_2);
+  _tft.fillCircle(cx, glyphY + 1, 3, color);
 }
 
 void DisplayManager::centeredText(const String& text,
-                                  int16_t centerX,
+                                  int16_t centerXValue,
                                   int16_t y,
                                   uint8_t textSize,
-                                  uint16_t color) {
+                                  uint16_t color,
+                                  uint16_t backgroundColor) {
   int16_t x1 = 0;
   int16_t y1 = 0;
-  uint16_t w = 0;
-  uint16_t h = 0;
+  uint16_t textW = 0;
+  uint16_t textH = 0;
 
   _tft.setTextSize(textSize);
   _tft.setTextWrap(false);
-  _tft.getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
+  _tft.getTextBounds(text, 0, 0, &x1, &y1, &textW, &textH);
 
-  const int16_t x =
-      centerX - static_cast<int16_t>(w / 2U);
+  int16_t x = centerXValue - static_cast<int16_t>(textW / 2U);
+  if (x < 2) {
+    x = 2;
+  }
 
-  _tft.setTextColor(color, COLOR_BG);
+  _tft.setTextColor(color, backgroundColor);
   _tft.setCursor(x, y);
   _tft.print(text);
 }
@@ -388,6 +449,7 @@ void DisplayManager::leftTextClipped(const String& text,
                                      int16_t y,
                                      uint8_t textSize,
                                      uint16_t color,
+                                     uint16_t backgroundColor,
                                      uint8_t maxChars) {
   String clipped = text;
 
@@ -398,45 +460,47 @@ void DisplayManager::leftTextClipped(const String& text,
 
   _tft.setTextWrap(false);
   _tft.setTextSize(textSize);
-  _tft.setTextColor(color, COLOR_PANEL);
+  _tft.setTextColor(color, backgroundColor);
   _tft.setCursor(x, y);
   _tft.print(clipped);
 }
 
-const char* DisplayManager::badgeText(WiFiManager::UiState state) const {
+const char* DisplayManager::badgeText(
+    ManageWiFiConnections::UiState state) const {
   switch (state) {
-    case WiFiManager::UiState::Connected:
+    case ManageWiFiConnections::UiState::Connected:
       return "ONLINE";
-    case WiFiManager::UiState::Portal:
-    case WiFiManager::UiState::PortalConnecting:
+    case ManageWiFiConnections::UiState::Portal:
+    case ManageWiFiConnections::UiState::PortalConnecting:
       return "SETUP";
-    case WiFiManager::UiState::Connecting:
-      return "CONNECT";
-    case WiFiManager::UiState::Error:
+    case ManageWiFiConnections::UiState::Connecting:
+      return "CONNECTING";
+    case ManageWiFiConnections::UiState::Error:
       return "ERROR";
-    case WiFiManager::UiState::Offline:
+    case ManageWiFiConnections::UiState::Offline:
       return "OFFLINE";
-    case WiFiManager::UiState::Booting:
+    case ManageWiFiConnections::UiState::Booting:
     default:
       return "BOOT";
   }
 }
 
-uint16_t DisplayManager::stateColor(WiFiManager::UiState state) const {
+uint16_t DisplayManager::stateColor(
+    ManageWiFiConnections::UiState state) const {
   switch (state) {
-    case WiFiManager::UiState::Connected:
+    case ManageWiFiConnections::UiState::Connected:
       return COLOR_ACCENT;
-    case WiFiManager::UiState::Portal:
+    case ManageWiFiConnections::UiState::Portal:
       return COLOR_BLUE;
-    case WiFiManager::UiState::PortalConnecting:
+    case ManageWiFiConnections::UiState::PortalConnecting:
       return COLOR_ACCENT;
-    case WiFiManager::UiState::Connecting:
+    case ManageWiFiConnections::UiState::Connecting:
       return COLOR_BLUE;
-    case WiFiManager::UiState::Error:
+    case ManageWiFiConnections::UiState::Error:
       return COLOR_RED;
-    case WiFiManager::UiState::Offline:
+    case ManageWiFiConnections::UiState::Offline:
       return COLOR_YELLOW;
-    case WiFiManager::UiState::Booting:
+    case ManageWiFiConnections::UiState::Booting:
     default:
       return COLOR_MUTED;
   }

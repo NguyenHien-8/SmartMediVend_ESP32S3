@@ -21,7 +21,7 @@ static constexpr uint32_t WIFI_TELEMETRY_MS       = 5000UL;
 static constexpr bool WIFI_LOGGING_ENABLED        = true;
 
 // ---------- TFT ----------
-static constexpr uint8_t TFT_ROTATION = 1;  // Landscape 320x240
+static constexpr uint8_t TFT_ROTATION = 0;  // Portrait 240x320
 static constexpr uint32_t TFT_SPI_FREQUENCY_HZ = 40000000UL;
 static constexpr bool TFT_BACKLIGHT_ACTIVE_HIGH = true;
 static constexpr uint32_t TFT_ANIMATION_INTERVAL_MS = 110UL;

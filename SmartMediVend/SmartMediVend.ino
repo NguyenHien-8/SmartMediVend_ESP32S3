@@ -1,8 +1,8 @@
 #include "DisplayManager.h"
-#include "WiFiManager.h"
+#include "ManageWiFiConnections.h"
 
 smv::DisplayManager displayManager;
-smv::WiFiManager wifiManager;
+smv::ManageWiFiConnections wifiManager;
 
 void setup() {
   Serial.begin(115200);
@@ -11,7 +11,7 @@ void setup() {
   Serial.println();
   Serial.println(F("=== SmartMediVend ESP32-S3 ==="));
   Serial.println(F("Wi-Fi: ESP32WiFiPortal v2.1.2"));
-  Serial.println(F("TFT: ILI9341 320x240 SPI"));
+  Serial.println(F("TFT: ILI9341 240x320 SPI - Portrait UI"));
 
   displayManager.begin();
   displayManager.showBootScreen();
@@ -19,8 +19,6 @@ void setup() {
   // Short one-time splash only. No long blocking delays are used in loop().
   delay(300);
 
-  // Shows the "Connecting" screen before connectSaved() performs its bounded
-  // boot connection attempt.
   displayManager.forceRefresh();
 
   wifiManager.begin();
