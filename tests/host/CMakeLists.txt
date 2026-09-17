@@ -17,6 +17,7 @@ add_executable(smv_host_tests
   test_confirmation_vending.cpp
   test_protocol_mcp.cpp
   test_button.cpp
+  test_bootstrap_session.cpp
   ../../SmartMediVend/src/medical/MedicineCatalog.cpp
   ../../SmartMediVend/src/medical/PharmacistGate.cpp
   ../../SmartMediVend/src/medical/StructuredInputValidator.cpp
@@ -34,6 +35,8 @@ add_executable(smv_host_tests
   ../../SmartMediVend/src/mcp/McpServer.cpp
   ../../SmartMediVend/src/mcp/SmartMediVendTools.cpp
   ../../SmartMediVend/src/app/ButtonController.cpp
+  ../../SmartMediVend/src/network/XiaozhiBootstrapClient.cpp
+  ../../SmartMediVend/src/network/XiaozhiSession.cpp
 )
 
 target_include_directories(smv_host_tests PRIVATE
