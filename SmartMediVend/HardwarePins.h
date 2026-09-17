@@ -5,7 +5,7 @@
 namespace smv {
 namespace pins {
 
-// TFT 2.4" SPI (ILI9341, write-only SPI)
+// TFT 2.4" SPI (ST7789, write-only SPI)
 static constexpr uint8_t TFT_CS   = 10;
 static constexpr uint8_t TFT_RST  = 14;
 static constexpr uint8_t TFT_DC   = 9;
