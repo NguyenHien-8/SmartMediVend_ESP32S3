@@ -117,13 +117,13 @@ void DisplayManager::showBootScreen() {
   _forceRefresh = true;
 }
 
-void DisplayManager::process(const ManageWiFiConnections& wifi) {
+void DisplayManager::process(const WiFiService& wifi) {
   if (!_initialized) {
     return;
   }
 
   const uint32_t now = millis();
-  const ManageWiFiConnections::UiState state = wifi.uiState();
+  const WiFiService::UiState state = wifi.uiState();
   const bool stateChanged = (state != _lastState);
 
   if (_forceRefresh || stateChanged) {
@@ -146,7 +146,7 @@ void DisplayManager::process(const ManageWiFiConnections& wifi) {
     _lastHoldPercent = holdPercent;
   }
 
-  if (state == ManageWiFiConnections::UiState::Connected) {
+  if (state == WiFiService::UiState::Connected) {
     const uint8_t bars = rssiBars(wifi.rssi());
     if (bars != _lastRssiBars) {
       drawSignalBars(wifi.rssi());
@@ -154,8 +154,8 @@ void DisplayManager::process(const ManageWiFiConnections& wifi) {
     }
   }
 
-  if ((state == ManageWiFiConnections::UiState::Connecting ||
-       state == ManageWiFiConnections::UiState::PortalConnecting) &&
+  if ((state == WiFiService::UiState::Connecting ||
+       state == WiFiService::UiState::PortalConnecting) &&
       elapsed(now, _lastAnimationAt, config::TFT_ANIMATION_INTERVAL_MS)) {
     _lastAnimationAt = now;
     _spinnerStep = static_cast<uint8_t>((_spinnerStep + 1U) % 8U);
@@ -180,7 +180,7 @@ void DisplayManager::drawStaticFrame() {
   _tft.drawFastHLine(14, FOOTER_TOP, w - 28, COLOR_DIVIDER);
 }
 
-void DisplayManager::drawHeader(const ManageWiFiConnections& wifi) {
+void DisplayManager::drawHeader(const WiFiService& wifi) {
   const int16_t w = screenWidth();
 
   _tft.fillRect(0, 0, w, HEADER_HEIGHT, COLOR_BG);
@@ -200,7 +200,7 @@ void DisplayManager::drawHeader(const ManageWiFiConnections& wifi) {
   _tft.print(badgeText(wifi.uiState()));
 }
 
-void DisplayManager::drawStatusCard(const ManageWiFiConnections& wifi) {
+void DisplayManager::drawStatusCard(const WiFiService& wifi) {
   const int16_t w = screenWidth();
   const int16_t cx = w / 2;
   const int16_t cardW = w - 2 * CARD_MARGIN_X;
@@ -214,7 +214,7 @@ void DisplayManager::drawStatusCard(const ManageWiFiConnections& wifi) {
   _tft.setTextWrap(false);
 
   switch (wifi.uiState()) {
-    case ManageWiFiConnections::UiState::Connecting:
+    case WiFiService::UiState::Connecting:
       centeredText(F("Connecting Wi-Fi"), cx, 132, 2, COLOR_TEXT, COLOR_PANEL);
       centeredText(F("Checking saved network..."), cx, 160, 1,
                    COLOR_MUTED, COLOR_PANEL);
@@ -224,7 +224,7 @@ void DisplayManager::drawStatusCard(const ManageWiFiConnections& wifi) {
       drawSpinner(_spinnerStep, color);
       break;
 
-    case ManageWiFiConnections::UiState::Connected: {
+    case WiFiService::UiState::Connected: {
       centeredText(F("Wi-Fi connected"), cx, 132, 2, COLOR_TEXT, COLOR_PANEL);
       centeredText(wifi.ssid(), cx, 160, 1, COLOR_MUTED, COLOR_PANEL);
 
@@ -238,7 +238,7 @@ void DisplayManager::drawStatusCard(const ManageWiFiConnections& wifi) {
       break;
     }
 
-    case ManageWiFiConnections::UiState::Portal: {
+    case WiFiService::UiState::Portal: {
       centeredText(F("Wi-Fi setup portal"), cx, 132, 2,
                    COLOR_TEXT, COLOR_PANEL);
 
@@ -256,7 +256,7 @@ void DisplayManager::drawStatusCard(const ManageWiFiConnections& wifi) {
       break;
     }
 
-    case ManageWiFiConnections::UiState::PortalConnecting:
+    case WiFiService::UiState::PortalConnecting:
       centeredText(F("Applying Wi-Fi"), cx, 132, 2, COLOR_TEXT, COLOR_PANEL);
       centeredText(F("Testing new credentials..."), cx, 160, 1,
                    COLOR_MUTED, COLOR_PANEL);
@@ -266,7 +266,7 @@ void DisplayManager::drawStatusCard(const ManageWiFiConnections& wifi) {
       drawSpinner(_spinnerStep, color);
       break;
 
-    case ManageWiFiConnections::UiState::Error:
+    case WiFiService::UiState::Error:
       centeredText(F("Wi-Fi setup error"), cx, 132, 2, COLOR_TEXT, COLOR_PANEL);
       leftTextClipped(wifi.lastError(), 24, 164, 1,
                       COLOR_RED, COLOR_PANEL, 31);
@@ -275,7 +275,7 @@ void DisplayManager::drawStatusCard(const ManageWiFiConnections& wifi) {
       clearSpinnerArea();
       break;
 
-    case ManageWiFiConnections::UiState::Offline:
+    case WiFiService::UiState::Offline:
       centeredText(F("Offline mode"), cx, 132, 2, COLOR_TEXT, COLOR_PANEL);
       centeredText(F("Device remains operational"), cx, 160, 1,
                    COLOR_MUTED, COLOR_PANEL);
@@ -293,7 +293,7 @@ void DisplayManager::drawStatusCard(const ManageWiFiConnections& wifi) {
       clearSpinnerArea();
       break;
 
-    case ManageWiFiConnections::UiState::Booting:
+    case WiFiService::UiState::Booting:
     default:
       centeredText(F("Starting..."), cx, 132, 2, COLOR_TEXT, COLOR_PANEL);
       centeredText(F("Initializing services"), cx, 160, 1,
@@ -303,7 +303,7 @@ void DisplayManager::drawStatusCard(const ManageWiFiConnections& wifi) {
   }
 }
 
-void DisplayManager::drawFooter(const ManageWiFiConnections& wifi) {
+void DisplayManager::drawFooter(const WiFiService& wifi) {
   const int16_t w = screenWidth();
   const int16_t h = screenHeight();
   const int16_t footerY = FOOTER_TOP + 1;
@@ -475,41 +475,41 @@ void DisplayManager::leftTextClipped(const String& text,
 }
 
 const char* DisplayManager::badgeText(
-    ManageWiFiConnections::UiState state) const {
+    WiFiService::UiState state) const {
   switch (state) {
-    case ManageWiFiConnections::UiState::Connected:
+    case WiFiService::UiState::Connected:
       return "ONLINE";
-    case ManageWiFiConnections::UiState::Portal:
-    case ManageWiFiConnections::UiState::PortalConnecting:
+    case WiFiService::UiState::Portal:
+    case WiFiService::UiState::PortalConnecting:
       return "SETUP";
-    case ManageWiFiConnections::UiState::Connecting:
+    case WiFiService::UiState::Connecting:
       return "CONNECTING";
-    case ManageWiFiConnections::UiState::Error:
+    case WiFiService::UiState::Error:
       return "ERROR";
-    case ManageWiFiConnections::UiState::Offline:
+    case WiFiService::UiState::Offline:
       return "OFFLINE";
-    case ManageWiFiConnections::UiState::Booting:
+    case WiFiService::UiState::Booting:
     default:
       return "BOOT";
   }
 }
 
 uint16_t DisplayManager::stateColor(
-    ManageWiFiConnections::UiState state) const {
+    WiFiService::UiState state) const {
   switch (state) {
-    case ManageWiFiConnections::UiState::Connected:
+    case WiFiService::UiState::Connected:
       return COLOR_ACCENT;
-    case ManageWiFiConnections::UiState::Portal:
+    case WiFiService::UiState::Portal:
       return COLOR_BLUE;
-    case ManageWiFiConnections::UiState::PortalConnecting:
+    case WiFiService::UiState::PortalConnecting:
       return COLOR_ACCENT;
-    case ManageWiFiConnections::UiState::Connecting:
+    case WiFiService::UiState::Connecting:
       return COLOR_BLUE;
-    case ManageWiFiConnections::UiState::Error:
+    case WiFiService::UiState::Error:
       return COLOR_RED;
-    case ManageWiFiConnections::UiState::Offline:
+    case WiFiService::UiState::Offline:
       return COLOR_YELLOW;
-    case ManageWiFiConnections::UiState::Booting:
+    case WiFiService::UiState::Booting:
     default:
       return COLOR_MUTED;
   }

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <Adafruit_GFX.h>
-#include <Adafruit_ST7789.h>
 #include <Arduino.h>
 #include <SPI.h>
 
-#include "ManageWiFiConnections.h"
+#include "src/network/WiFiService.h"
+#include "src/vendor/Adafruit/Adafruit_GFX.h"
+#include "src/vendor/Adafruit/Adafruit_ST7789.h"
 
 namespace smv {
 
@@ -17,16 +17,16 @@ class DisplayManager {
   void showBootScreen();
 
   // Non-blocking UI service. Redraws only changed regions.
-  void process(const ManageWiFiConnections& wifi);
+  void process(const WiFiService& wifi);
 
   // Use after a subsystem changes the whole screen in future.
   void forceRefresh();
 
  private:
   void drawStaticFrame();
-  void drawHeader(const ManageWiFiConnections& wifi);
-  void drawStatusCard(const ManageWiFiConnections& wifi);
-  void drawFooter(const ManageWiFiConnections& wifi);
+  void drawHeader(const WiFiService& wifi);
+  void drawStatusCard(const WiFiService& wifi);
+  void drawFooter(const WiFiService& wifi);
   void drawHoldProgress(uint8_t percent);
   void drawSignalBars(int32_t rssi);
   void drawSpinner(uint8_t step, uint16_t color);
@@ -48,8 +48,8 @@ class DisplayManager {
                        uint16_t backgroundColor,
                        uint8_t maxChars);
 
-  const char* badgeText(ManageWiFiConnections::UiState state) const;
-  uint16_t stateColor(ManageWiFiConnections::UiState state) const;
+  const char* badgeText(WiFiService::UiState state) const;
+  uint16_t stateColor(WiFiService::UiState state) const;
   uint8_t rssiBars(int32_t rssi) const;
 
   int16_t screenWidth() const { return _tft.width(); }
@@ -61,8 +61,7 @@ class DisplayManager {
   bool _initialized = false;
   bool _forceRefresh = true;
 
-  ManageWiFiConnections::UiState _lastState =
-      ManageWiFiConnections::UiState::Booting;
+  WiFiService::UiState _lastState = WiFiService::UiState::Booting;
   uint8_t _lastHoldPercent = 255;
   uint8_t _lastRssiBars = 255;
   uint8_t _spinnerStep = 0;

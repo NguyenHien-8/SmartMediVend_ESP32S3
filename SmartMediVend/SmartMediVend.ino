@@ -1,8 +1,8 @@
 #include "DisplayManager.h"
-#include "ManageWiFiConnections.h"
+#include "src/network/WiFiService.h"
 
 smv::DisplayManager displayManager;
-smv::ManageWiFiConnections wifiManager;
+smv::WiFiService wifiManager;
 
 void setup() {
   Serial.begin(115200);
