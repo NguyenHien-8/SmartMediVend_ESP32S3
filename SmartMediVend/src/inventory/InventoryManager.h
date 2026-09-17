@@ -24,6 +24,7 @@ class InventoryManager {
 
   uint8_t quantity(uint8_t channel) const;
   int resolveChannel(std::string_view canonicalId) const;
+  bool hasAnyCommit(std::string_view transactionId) const;
   CommitResult commitPulse(std::string_view transactionId, uint8_t channel);
 
  private:

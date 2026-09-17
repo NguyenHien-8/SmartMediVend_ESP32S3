@@ -38,6 +38,16 @@ int InventoryManager::resolveChannel(std::string_view canonicalId) const {
   return backupChannel;
 }
 
+bool InventoryManager::hasAnyCommit(std::string_view transactionId) const {
+  const uint64_t transactionHash = hashTransaction(transactionId);
+  for (const auto& record : snapshot_.recentCommits) {
+    if (record.transactionHash == transactionHash && record.channelMask != 0U) {
+      return true;
+    }
+  }
+  return false;
+}
+
 CommitResult InventoryManager::commitPulse(std::string_view transactionId,
                                            uint8_t channel) {
   if (channel >= snapshot_.quantities.size()) {
