@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Adafruit_GFX.h>
-#include <Adafruit_ILI9341.h>
+#include <Adafruit_ST7789.h>
 #include <Arduino.h>
 #include <SPI.h>
 
@@ -56,7 +56,7 @@ class DisplayManager {
   int16_t screenHeight() const { return _tft.height(); }
   int16_t centerX() const { return screenWidth() / 2; }
 
-  Adafruit_ILI9341 _tft;
+  Adafruit_ST7789 _tft;
 
   bool _initialized = false;
   bool _forceRefresh = true;

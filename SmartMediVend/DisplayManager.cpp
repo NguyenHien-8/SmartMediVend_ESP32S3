@@ -38,7 +38,7 @@ bool elapsed(uint32_t now, uint32_t since, uint32_t interval) {
 }  // namespace
 
 DisplayManager::DisplayManager()
-    : _tft(&SPI, pins::TFT_DC, pins::TFT_CS, pins::TFT_RST) {}
+    : _tft(&SPI, pins::TFT_CS, pins::TFT_DC, pins::TFT_RST) {}
 
 bool DisplayManager::begin() {
   pinMode(pins::TFT_BL, OUTPUT);
@@ -53,8 +53,17 @@ bool DisplayManager::begin() {
   // No MISO is required for this write-only TFT use case.
   SPI.begin(pins::TFT_SCLK, -1, pins::TFT_MOSI, pins::TFT_CS);
 
-  _tft.begin(config::TFT_SPI_FREQUENCY_HZ);
+  // This V1.3 2.4-inch module uses the ST7789 controller.  Initializing it
+  // with the ILI9341 command table produces the characteristic 240x240
+  // visible area, 90-degree rotation and an unaddressed/noisy 80-pixel band.
+  _tft.init(240, 320, SPI_MODE0);
+  _tft.setSPISpeed(config::TFT_SPI_FREQUENCY_HZ);
   _tft.setRotation(config::TFT_ROTATION);
+
+  // Adafruit_ST7789 initializes these panels with display inversion enabled.
+  // Keep it explicitly enabled because this V1.3 ST7789 module family needs
+  // the inverted drive mode for the expected RGB colors.
+  _tft.invertDisplay(true);
 
   Serial.print(F("[SMV] TFT geometry: "));
   Serial.print(_tft.width());

@@ -11,7 +11,7 @@ void setup() {
   Serial.println();
   Serial.println(F("=== SmartMediVend ESP32-S3 ==="));
   Serial.println(F("Wi-Fi: ESP32WiFiPortal v2.1.2"));
-  Serial.println(F("TFT: ILI9341 240x320 SPI - Portrait UI"));
+  Serial.println(F("TFT: ST7789 240x320 SPI - Portrait UI"));
 
   displayManager.begin();
   displayManager.showBootScreen();
