@@ -268,6 +268,10 @@ SymptomDecodeResult SymptomJsonDecoder::decode(std::string_view json) {
                        result.error)) {
     return result;
   }
+  if (!turnKnown) {
+    result.error = SymptomDecodeError::MissingTurnId;
+    return result;
+  }
 
   if (!decodeEnumArray(json, "symptoms", kSymptoms, 8,
                        result.session.symptomsKnown,

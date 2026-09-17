@@ -1,9 +1,11 @@
 #include "TestHarness.h"
 
 #include "src/medical/MedicalRuleEngine.h"
+#include "src/medical/SessionTurnGate.h"
 #include "src/medical/SymptomJsonDecoder.h"
 
 using smv::medical::MedicalRuleEngine;
+using smv::medical::SessionTurnGate;
 using smv::medical::SymptomDecodeError;
 using smv::medical::SymptomJsonDecoder;
 
@@ -27,9 +29,22 @@ TEST_CASE("structured AI observations decode into a local rule session") {
 
 TEST_CASE("unknown enum or wrong primitive fails closed") {
   REQUIRE(SymptomJsonDecoder::decode(
-              R"({"session_id":"s","symptoms":["invented"]})")
+              R"({"session_id":"s","turn_id":1,"symptoms":["invented"]})")
               .error == SymptomDecodeError::UnknownEnumValue);
   REQUIRE(SymptomJsonDecoder::decode(
-              R"({"session_id":"s","age_years":"30"})")
+              R"({"session_id":"s","turn_id":1,"age_years":"30"})")
               .error == SymptomDecodeError::WrongType);
+}
+
+TEST_CASE("turn id is required and stale or mismatched turns fail closed") {
+  REQUIRE(SymptomJsonDecoder::decode(R"({"session_id":"s"})").error ==
+          SymptomDecodeError::MissingTurnId);
+
+  SessionTurnGate gate;
+  REQUIRE(gate.accept("session-a", "session-a", 4));
+  REQUIRE_FALSE(gate.accept("session-a", "session-a", 4));
+  REQUIRE_FALSE(gate.accept("session-a", "session-a", 3));
+  REQUIRE_FALSE(gate.accept("session-a", "session-b", 5));
+  gate.reset();
+  REQUIRE(gate.accept("session-b", "session-b", 1));
 }

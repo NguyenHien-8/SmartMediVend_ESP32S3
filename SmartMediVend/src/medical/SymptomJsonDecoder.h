@@ -12,6 +12,7 @@ enum class SymptomDecodeError : uint8_t {
   TooLarge,
   MalformedJson,
   MissingSessionId,
+  MissingTurnId,
   WrongType,
   OutOfRange,
   UnknownEnumValue,

@@ -42,6 +42,7 @@ add_executable(smv_host_tests
   ../../SmartMediVend/src/network/XiaozhiSession.cpp
   ../../SmartMediVend/src/app/ConversationController.cpp
   ../../SmartMediVend/src/medical/SymptomJsonDecoder.cpp
+  ../../SmartMediVend/src/medical/SessionTurnGate.cpp
 )
 
 target_include_directories(smv_host_tests PRIVATE
