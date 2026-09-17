@@ -181,8 +181,9 @@ BootstrapResult XiaozhiBootstrapClient::fetch(
 
   const int status = request.systemInfoJson.empty()
                          ? http.GET()
-                         : http.POST(reinterpret_cast<const uint8_t*>(
-                                         request.systemInfoJson.data()),
+                         : http.POST(reinterpret_cast<uint8_t*>(
+                                         const_cast<char*>(
+                                             request.systemInfoJson.data())),
                                      request.systemInfoJson.size());
   result.httpStatus = status;
   if (status != HTTP_CODE_OK) {

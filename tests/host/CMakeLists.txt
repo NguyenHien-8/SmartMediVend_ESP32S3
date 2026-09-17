@@ -18,6 +18,7 @@ add_executable(smv_host_tests
   test_protocol_mcp.cpp
   test_button.cpp
   test_bootstrap_session.cpp
+  test_audio_core.cpp
   ../../SmartMediVend/src/medical/MedicineCatalog.cpp
   ../../SmartMediVend/src/medical/PharmacistGate.cpp
   ../../SmartMediVend/src/medical/StructuredInputValidator.cpp
