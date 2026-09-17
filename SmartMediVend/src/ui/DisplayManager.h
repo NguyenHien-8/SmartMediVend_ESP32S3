@@ -3,9 +3,10 @@
 #include <Arduino.h>
 #include <SPI.h>
 
-#include "src/network/WiFiService.h"
-#include "src/vendor/Adafruit/Adafruit_GFX.h"
-#include "src/vendor/Adafruit/Adafruit_ST7789.h"
+#include "../app/AppState.h"
+#include "../network/WiFiService.h"
+#include "../vendor/Adafruit/Adafruit_GFX.h"
+#include "../vendor/Adafruit/Adafruit_ST7789.h"
 
 namespace smv {
 
@@ -18,6 +19,12 @@ class DisplayManager {
 
   // Non-blocking UI service. Redraws only changed regions.
   void process(const WiFiService& wifi);
+
+  void showApplicationStatus(AppState state,
+                             const String& title,
+                             const String& detail,
+                             const String& candidateLines,
+                             bool productionLocked);
 
   // Use after a subsystem changes the whole screen in future.
   void forceRefresh();

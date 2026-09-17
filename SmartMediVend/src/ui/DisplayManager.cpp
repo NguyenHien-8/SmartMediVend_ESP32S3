@@ -1,7 +1,7 @@
 #include "DisplayManager.h"
 
-#include "AppConfig.h"
-#include "HardwarePins.h"
+#include "../../AppConfig.h"
+#include "../../HardwarePins.h"
 
 namespace smv {
 
@@ -165,6 +165,42 @@ void DisplayManager::process(const WiFiService& wifi) {
 
 void DisplayManager::forceRefresh() {
   _forceRefresh = true;
+}
+
+void DisplayManager::showApplicationStatus(AppState state,
+                                           const String& title,
+                                           const String& detail,
+                                           const String& candidateLines,
+                                           bool productionLocked) {
+  if (!_initialized) return;
+  const int16_t w = screenWidth();
+  const int16_t cardW = w - 2 * CARD_MARGIN_X;
+  _tft.fillRoundRect(CARD_MARGIN_X + 1, CARD_TOP + 1, cardW - 2,
+                     CARD_BOTTOM - CARD_TOP - 2, 15, COLOR_PANEL);
+  const uint16_t color =
+      state == AppState::Error ? COLOR_RED
+      : state == AppState::Dispensing ? COLOR_YELLOW
+      : state == AppState::AwaitingConfirmation ? COLOR_BLUE
+                                                : COLOR_ACCENT;
+  centeredText(title, w / 2, 75, 2, color, COLOR_PANEL);
+  leftTextClipped(detail, 20, 111, 1, COLOR_TEXT, COLOR_PANEL, 34);
+
+  int16_t y = 143;
+  int start = 0;
+  while (start < static_cast<int>(candidateLines.length()) && y <= 203) {
+    const int newline = candidateLines.indexOf('\n', start);
+    const int end = newline < 0 ? candidateLines.length() : newline;
+    leftTextClipped(candidateLines.substring(start, end), 20, y, 1,
+                    COLOR_MUTED, COLOR_PANEL, 34);
+    y += 20;
+    if (newline < 0) break;
+    start = newline + 1;
+  }
+  centeredText(productionLocked ? F("PHARMACIST REVIEW REQUIRED")
+                                : F("VENDING ENABLED"),
+               w / 2, 226, 1,
+               productionLocked ? COLOR_RED : COLOR_ACCENT, COLOR_PANEL);
+  _forceRefresh = false;
 }
 
 void DisplayManager::drawStaticFrame() {

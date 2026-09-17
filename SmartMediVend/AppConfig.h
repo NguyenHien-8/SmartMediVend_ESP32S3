@@ -5,6 +5,26 @@
 namespace smv {
 namespace config {
 
+#ifndef SMV_XIAOZHI_ROOT_CA_PEM
+#define SMV_XIAOZHI_ROOT_CA_PEM ""
+#endif
+
+#ifndef SMV_PRODUCTION_VENDING_ENABLED
+#define SMV_PRODUCTION_VENDING_ENABLED 0
+#endif
+
+#ifndef SMV_PHARMACIST_APPROVED
+#define SMV_PHARMACIST_APPROVED 0
+#endif
+
+#ifndef SMV_REVIEWED_CATALOG_VERSION
+#define SMV_REVIEWED_CATALOG_VERSION ""
+#endif
+
+#ifndef SMV_REVIEWED_RULES_VERSION
+#define SMV_REVIEWED_RULES_VERSION ""
+#endif
+
 // ---------- Wi-Fi ----------
 static const char WIFI_HOSTNAME[] = "TINIHI";
 static const char WIFI_PORTAL_SSID[] = "TINIHI-Setup";
@@ -30,7 +50,18 @@ static constexpr uint32_t TFT_ANIMATION_INTERVAL_MS = 110UL;
 static constexpr uint32_t CONFIRMATION_TIMEOUT_MS = 15000UL;
 
 // ---------- Vending ----------
-static constexpr bool PRODUCTION_VENDING_ENABLED = false;
+static constexpr bool PRODUCTION_VENDING_ENABLED =
+    SMV_PRODUCTION_VENDING_ENABLED != 0;
+static constexpr bool PHARMACIST_APPROVED = SMV_PHARMACIST_APPROVED != 0;
+static constexpr const char* REVIEWED_CATALOG_VERSION =
+    SMV_REVIEWED_CATALOG_VERSION;
+static constexpr const char* REVIEWED_RULES_VERSION =
+    SMV_REVIEWED_RULES_VERSION;
+static constexpr const char* XIAOZHI_BOOTSTRAP_URL =
+    "https://api.tenclass.net/xiaozhi/ota/";
+static constexpr const char* XIAOZHI_ROOT_CA_PEM =
+    SMV_XIAOZHI_ROOT_CA_PEM;
+static constexpr uint32_t XIAOZHI_HTTP_TIMEOUT_MS = 10000UL;
 static constexpr bool RELAY_ACTIVE_LOW = true;
 static constexpr uint32_t RELAY_SETTLE_MS = 10UL;
 static constexpr uint32_t RELAY_PULSE_MS = 500UL;

@@ -23,9 +23,20 @@ class ICloudSessionGuard {
   virtual void invalidateCloudContext() = 0;
 };
 
+class IXiaozhiSessionEvents {
+ public:
+  virtual ~IXiaozhiSessionEvents() = default;
+  virtual void onSessionReady(uint32_t sampleRate,
+                              uint16_t frameDurationMs) = 0;
+  virtual void onSessionText(std::string_view text) = 0;
+  virtual void onSessionAudio(const uint8_t* data, std::size_t size) = 0;
+  virtual void onSessionClosed() = 0;
+};
+
 class XiaozhiSession final : public IXiaozhiTransportListener {
  public:
   XiaozhiSession(IXiaozhiTransport& transport, ICloudSessionGuard& guard);
+  void setEventSink(IXiaozhiSessionEvents* sink) { eventSink_ = sink; }
 
   bool open(const TransportConfig& config);
   void close();
@@ -62,6 +73,7 @@ class XiaozhiSession final : public IXiaozhiTransportListener {
   uint32_t downlinkSampleRate_ = 16000;
   uint16_t downlinkFrameDurationMs_ = 60;
   bool contextInvalidated_ = true;
+  IXiaozhiSessionEvents* eventSink_ = nullptr;
 };
 
 }  // namespace smv::network

@@ -106,7 +106,12 @@ bool parseMember(std::string_view object,
   const std::size_t valueStart = position;
   ValueKind kind = ValueKind::Invalid;
   if (!skipValue(object, position, kind)) return false;
-  value = {object.substr(valueStart, position - valueStart), kind};
+  std::size_t valueEnd = position;
+  while (valueEnd > valueStart &&
+         std::isspace(static_cast<unsigned char>(object[valueEnd - 1])) != 0) {
+    --valueEnd;
+  }
+  value = {object.substr(valueStart, valueEnd - valueStart), kind};
   return true;
 }
 
@@ -149,6 +154,54 @@ bool isValidObject(std::string_view json) {
     return false;
   }
   return false;
+}
+
+bool isValidArray(std::string_view json) {
+  std::size_t cursor = 0;
+  skipWhitespace(json, cursor);
+  if (cursor >= json.size() || json[cursor] != '[') return false;
+  ++cursor;
+  skipWhitespace(json, cursor);
+  if (cursor < json.size() && json[cursor] == ']') {
+    ++cursor;
+    skipWhitespace(json, cursor);
+    return cursor == json.size();
+  }
+  while (cursor < json.size()) {
+    ValueKind kind = ValueKind::Invalid;
+    if (!skipValue(json, cursor, kind)) return false;
+    skipWhitespace(json, cursor);
+    if (cursor >= json.size()) return false;
+    if (json[cursor] == ',') {
+      ++cursor;
+      continue;
+    }
+    if (json[cursor] == ']') {
+      ++cursor;
+      skipWhitespace(json, cursor);
+      return cursor == json.size();
+    }
+    return false;
+  }
+  return false;
+}
+
+bool nextArrayValue(std::string_view array,
+                    std::size_t& cursor,
+                    ValueView& value) {
+  if (cursor == 0) {
+    skipWhitespace(array, cursor);
+    if (cursor >= array.size() || array[cursor++] != '[') return false;
+  }
+  skipWhitespace(array, cursor);
+  if (cursor >= array.size() || array[cursor] == ']') return false;
+  const std::size_t begin = cursor;
+  ValueKind kind = ValueKind::Invalid;
+  if (!skipValue(array, cursor, kind)) return false;
+  value = {array.substr(begin, cursor - begin), kind};
+  skipWhitespace(array, cursor);
+  if (cursor < array.size() && array[cursor] == ',') ++cursor;
+  return true;
 }
 
 bool findMember(std::string_view object,

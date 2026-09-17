@@ -3,6 +3,7 @@
 #include <charconv>
 
 #include "../core/JsonLite.h"
+#include "../protocol/XiaozhiProtocol.h"
 
 namespace smv::network {
 namespace {
@@ -90,9 +91,16 @@ void XiaozhiSession::onTransportDisconnected() {
   state_ = SessionState::Disconnected;
   sessionId_.clear();
   invalidateOnce();
+  if (eventSink_ != nullptr) eventSink_->onSessionClosed();
 }
 
 void XiaozhiSession::onTransportText(std::string_view text) {
+  if (state_ == SessionState::Ready) {
+    if (text.size() <= 8192U && eventSink_ != nullptr) {
+      eventSink_->onSessionText(text);
+    }
+    return;
+  }
   if (state_ != SessionState::AwaitingHello || text.size() > 8192U ||
       !jsonlite::isValidObject(text)) {
     if (state_ == SessionState::AwaitingHello) failClosed();
@@ -134,11 +142,24 @@ void XiaozhiSession::onTransportText(std::string_view text) {
   downlinkSampleRate_ = parsedRate;
   downlinkFrameDurationMs_ = static_cast<uint16_t>(parsedDuration);
   state_ = SessionState::Ready;
+  if (eventSink_ != nullptr) {
+    eventSink_->onSessionReady(downlinkSampleRate_,
+                               downlinkFrameDurationMs_);
+  }
 }
 
-void XiaozhiSession::onTransportBinary(const uint8_t*, std::size_t) {
-  // Audio payload ownership is attached by AudioService in the composition
-  // layer; session lifecycle validation remains here.
+void XiaozhiSession::onTransportBinary(const uint8_t* data,
+                                       std::size_t size) {
+  if (state_ == SessionState::Ready && eventSink_ != nullptr) {
+    const auto packet = protocol::XiaozhiProtocol::parseBinary(
+        config_.protocolVersion, data, size);
+    if (packet.ok()) {
+      eventSink_->onSessionAudio(packet.payload, packet.payloadSize);
+    } else {
+      eventSink_->onSessionText(
+          R"({"type":"alert","message":"INVALID_AUDIO_FRAME"})");
+    }
+  }
 }
 
 void XiaozhiSession::onTransportError() { failClosed(); }

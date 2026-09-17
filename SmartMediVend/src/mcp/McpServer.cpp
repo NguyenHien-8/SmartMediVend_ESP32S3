@@ -77,7 +77,23 @@ std::string McpServer::result(std::string_view id, std::string_view json) {
 }
 
 std::string McpServer::toolsListJson() {
-  return R"({"tools":[{"name":"smartmedivend.get_device_status","description":"Read device state","inputSchema":{"type":"object","additionalProperties":false}},{"name":"smartmedivend.get_inventory","description":"Read estimated blister stock","inputSchema":{"type":"object","additionalProperties":false}},{"name":"smartmedivend.get_medicine_info","description":"Read local catalog information","inputSchema":{"type":"object"}},{"name":"smartmedivend.submit_symptom_data","description":"Submit untrusted structured symptom observations for local evaluation","inputSchema":{"type":"object"}},{"name":"smartmedivend.get_candidate_status","description":"Read the local candidate state","inputSchema":{"type":"object","additionalProperties":false}}]})";
+  return R"JSON({"tools":[
+    {"name":"smartmedivend.get_device_status","description":"Read-only device and safety-lock state. Never controls vending.","inputSchema":{"type":"object","additionalProperties":false}},
+    {"name":"smartmedivend.get_inventory","description":"Read-only estimated blister stock. Stock is command-sent-unverified because no drop sensor is installed.","inputSchema":{"type":"object","additionalProperties":false}},
+    {"name":"smartmedivend.get_medicine_info","description":"Read local pharmacist-reviewable catalog information by canonical medicine id. Never accepts SKU or channel.","inputSchema":{"type":"object","required":["canonical_id"],"properties":{"canonical_id":{"type":"string"}},"additionalProperties":false}},
+    {"name":"smartmedivend.submit_symptom_data","description":"Submit only extracted patient answers. The ESP32 independently validates safety and selects at most three canonical medicines. Never send SKU, channel, relay, quantity, or vend fields.","inputSchema":{"type":"object","required":["session_id"],"properties":{
+      "session_id":{"type":"string","maxLength":128},"turn_id":{"type":"integer","minimum":0,"maximum":1000000},
+      "age_years":{"type":"integer","minimum":0,"maximum":120},"weight_kg":{"type":"integer","minimum":1,"maximum":300},
+      "pregnancy_or_breastfeeding":{"type":"boolean"},"duration_hours":{"type":"integer","minimum":0,"maximum":87600},
+      "symptoms":{"type":"array","maxItems":8,"items":{"type":"string","enum":["fever","mild_headache","mild_body_ache","mild_inflammatory_pain","allergic_rhinitis","dry_cough","productive_cough","mild_sore_throat","gas_bloating","acid_indigestion","short_term_reflux","acute_watery_diarrhoea","short_term_constipation","motion_sickness","digestive_support","unexplained_nausea"]}},
+      "danger_signs":{"type":"array","maxItems":16,"items":{"type":"string","enum":["difficulty_breathing","chest_pain","confusion","fainting","seizure","weakness_or_speech_problem","sudden_severe_headache","stiff_neck","coughing_blood","vomiting_blood","bloody_or_black_stool","severe_abdominal_pain","dehydration","cannot_keep_fluids","difficulty_swallowing","drooling","stridor","unintentional_weight_loss","rapidly_worsening"]}},
+      "conditions":{"type":"array","maxItems":12,"items":{"type":"string","enum":["liver_disease","kidney_disease","heart_disease","peptic_ulcer","gastrointestinal_bleeding","nsaid_allergy","nsaid_triggered_asthma","asthma_or_copd","glaucoma","urination_difficulty","immunocompromised","critically_ill","central_venous_catheter","inflammatory_bowel_disease","bowel_obstruction","thyroid_treatment","sodium_restriction","chronic_cough","constipation","abdominal_swelling","yeast_allergy","serious_skin_or_mucosal_reaction","heavy_alcohol_use"]}},
+      "current_medicines":{"type":"array","maxItems":16,"items":{"type":"string","enum":["contains_paracetamol","anticoagulant","systemic_steroid","other_nsaid","other_antihistamine","maoi_within_14_days","sedative_or_tranquilizer","levothyroxine","clopidogrel","important_ppi_interaction","recent_antacid","medicine_requiring_antacid_spacing","antifungal"]}},
+      "allergies":{"type":"array","maxItems":8,"items":{"type":"string","enum":["paracetamol","ibuprofen_or_nsaid","loratadine","dextromethorphan","ambroxol","dequalinium","simethicone","aluminium_or_magnesium_antacid","omeprazole_or_ppi","loperamide","bisacodyl","dimenhydrinate","yeast"]}},
+      "alcohol_use":{"type":"boolean"},"driving_or_operating_machinery":{"type":"boolean"},"diarrhoea_after_antibiotics":{"type":"boolean"},"constipation_lifestyle_tried":{"type":"boolean"}
+    },"additionalProperties":false}},
+    {"name":"smartmedivend.get_candidate_status","description":"Read-only status of the candidate created by the ESP32 local rule engine.","inputSchema":{"type":"object","additionalProperties":false}}
+  ]})JSON";
 }
 
 }  // namespace smv::mcp

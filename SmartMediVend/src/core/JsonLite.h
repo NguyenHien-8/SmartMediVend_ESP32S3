@@ -15,8 +15,14 @@ struct ValueView {
 };
 
 bool isValidObject(std::string_view json);
+bool isValidArray(std::string_view json);
 bool findMember(std::string_view object,
                 std::string_view key,
                 ValueView& value);
+// Cursor starts at zero. Returns each array item in order and false at the
+// closing bracket. Call isValidArray() first to distinguish end from error.
+bool nextArrayValue(std::string_view array,
+                    std::size_t& cursor,
+                    ValueView& value);
 
 }  // namespace smv::jsonlite
