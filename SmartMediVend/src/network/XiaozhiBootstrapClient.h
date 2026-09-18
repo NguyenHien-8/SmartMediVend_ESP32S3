@@ -26,6 +26,19 @@ struct ActivationInfo {
   std::string code;
   std::string challenge;
   uint32_t timeoutMs = 0;
+  bool required() const { return !code.empty() && !challenge.empty(); }
+};
+
+enum class ActivationPollStatus : uint8_t {
+  Activated = 0,
+  Pending,
+  Failed
+};
+
+struct ActivationPollResult {
+  ActivationPollStatus status = ActivationPollStatus::Failed;
+  BootstrapError error = BootstrapError::None;
+  int httpStatus = 0;
 };
 
 struct ServerTimeInfo {
@@ -64,6 +77,9 @@ struct BootstrapRequest {
 class XiaozhiBootstrapClient {
  public:
   BootstrapResult fetch(const BootstrapRequest& request) const;
+  ActivationPollResult activate(const BootstrapRequest& request) const;
+  static ActivationPollStatus classifyActivationHttpStatus(int httpStatus);
+  static uint32_t activationHttpTimeoutMs(uint32_t serverWaitMs);
 };
 
 }  // namespace smv::network

@@ -1,5 +1,9 @@
 #include "XiaozhiWebSocketTransport.h"
 
+#ifdef ARDUINO
+#include <Arduino.h>
+#endif
+
 namespace smv::network {
 namespace {
 
@@ -47,6 +51,14 @@ bool XiaozhiWebSocketTransport::connect(const TransportConfig& config) {
     return false;
   }
 #ifdef ARDUINO
+  active_ = true;
+  Serial.print(F("[SMV][XIAOZHI] WSS connect host="));
+  Serial.print(url.host.c_str());
+  Serial.print(F(" path="));
+  const std::size_t query = url.path.find('?');
+  Serial.print(url.path.substr(0, query).c_str());
+  Serial.print(F(" protocol="));
+  Serial.println(config.protocolVersion);
   std::string authorization = config.token;
   if (!authorization.empty() && authorization.find(' ') == std::string::npos) {
     authorization.insert(0, "Bearer ");
@@ -57,32 +69,68 @@ bool XiaozhiWebSocketTransport::connect(const TransportConfig& config) {
              "Device-Id: " + config.deviceId + "\r\n" +
              "Client-Id: " + config.clientId + "\r\n";
   socket_.setExtraHeaders(headers_.c_str());
-  socket_.setReconnectInterval(0);
+  // This library interprets zero as "retry on every loop", not "disabled".
+  // Keep failed TCP handshakes bounded while XiaozhiSession owns the actual
+  // reconnect/backoff policy.
+  socket_.setReconnectInterval(1000U);
   socket_.onEvent([this](WStype_t type, uint8_t* payload, size_t length) {
-    if (listener_ == nullptr) return;
     switch (type) {
       case WStype_CONNECTED:
-        listener_->onTransportConnected();
+        Serial.println(F("[SMV][XIAOZHI] WSS transport connected"));
+        if (active_ && listener_ != nullptr) {
+          listener_->onTransportConnected();
+        }
         break;
       case WStype_DISCONNECTED:
-        listener_->onTransportDisconnected();
+        Serial.print(F("[SMV][XIAOZHI] WSS transport disconnected"));
+        if (payload != nullptr && length > 0U) {
+          Serial.print(F(" reason="));
+          const std::size_t bounded = length > 64U ? 64U : length;
+          for (std::size_t index = 0; index < bounded; ++index) {
+            const char character = static_cast<char>(payload[index]);
+            Serial.print(character >= 0x20 && character <= 0x7E
+                             ? character
+                             : '?');
+          }
+        }
+        Serial.println();
+        {
+          const bool notify = active_;
+          active_ = false;
+          if (notify && listener_ != nullptr) {
+            listener_->onTransportDisconnected();
+          }
+        }
         break;
       case WStype_TEXT:
-        listener_->onTransportText(std::string_view(
-            reinterpret_cast<const char*>(payload), length));
+        if (active_ && listener_ != nullptr) {
+          listener_->onTransportText(std::string_view(
+              reinterpret_cast<const char*>(payload), length));
+        }
         break;
       case WStype_BIN:
-        listener_->onTransportBinary(payload, length);
+        if (active_ && listener_ != nullptr) {
+          listener_->onTransportBinary(payload, length);
+        }
         break;
       case WStype_ERROR:
-        listener_->onTransportError();
+        Serial.println(F("[SMV][XIAOZHI] WSS transport error"));
+        {
+          const bool notify = active_;
+          active_ = false;
+          if (notify && listener_ != nullptr) listener_->onTransportError();
+        }
         break;
       default:
         break;
     }
   });
+  // The official Xiaozhi implementation does not request a WebSocket
+  // subprotocol; only the four documented authentication/protocol headers are
+  // sent.  An unsolicited subprotocol can be accepted by the HTTP upgrade and
+  // then rejected by the application server.
   socket_.beginSslWithCA(url.host.c_str(), url.port, url.path.c_str(),
-                         config.rootCaPem.c_str(), "xiaozhi");
+                         config.rootCaPem.c_str(), "");
   return true;
 #else
   (void)config;
@@ -92,19 +140,20 @@ bool XiaozhiWebSocketTransport::connect(const TransportConfig& config) {
 
 void XiaozhiWebSocketTransport::disconnect() {
 #ifdef ARDUINO
+  active_ = false;
   socket_.disconnect();
 #endif
 }
 
 void XiaozhiWebSocketTransport::process() {
 #ifdef ARDUINO
-  socket_.loop();
+  if (active_) socket_.loop();
 #endif
 }
 
 bool XiaozhiWebSocketTransport::sendText(std::string_view text) {
 #ifdef ARDUINO
-  return text.size() <= 8192U &&
+  return active_ && text.size() <= 8192U &&
          socket_.sendTXT(reinterpret_cast<const uint8_t*>(text.data()),
                          text.size());
 #else
@@ -116,7 +165,7 @@ bool XiaozhiWebSocketTransport::sendText(std::string_view text) {
 bool XiaozhiWebSocketTransport::sendBinary(const uint8_t* data,
                                             std::size_t size) {
 #ifdef ARDUINO
-  return data != nullptr && size > 0 && size <= 4096U &&
+  return active_ && data != nullptr && size > 0 && size <= 4096U &&
          socket_.sendBIN(data, size);
 #else
   (void)data;
@@ -127,7 +176,7 @@ bool XiaozhiWebSocketTransport::sendBinary(const uint8_t* data,
 
 bool XiaozhiWebSocketTransport::isConnected() const {
 #ifdef ARDUINO
-  return const_cast<WebSocketsClient&>(socket_).isConnected();
+  return active_ && const_cast<WebSocketsClient&>(socket_).isConnected();
 #else
   return false;
 #endif

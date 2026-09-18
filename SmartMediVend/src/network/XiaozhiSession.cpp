@@ -2,6 +2,10 @@
 
 #include <charconv>
 
+#ifdef ARDUINO
+#include <Arduino.h>
+#endif
+
 #include "../core/JsonLite.h"
 #include "../protocol/XiaozhiProtocol.h"
 
@@ -49,7 +53,7 @@ bool XiaozhiSession::open(const TransportConfig& config) {
   downlinkFrameDurationMs_ = 60;
   state_ = SessionState::Connecting;
   if (!transport_.connect(config_)) {
-    failClosed();
+    failClosed("transport_connect", false);
     return false;
   }
   return true;
@@ -84,7 +88,7 @@ uint32_t XiaozhiSession::reconnectDelayMs(uint8_t failures,
 void XiaozhiSession::onTransportConnected() {
   if (state_ != SessionState::Connecting) return;
   state_ = SessionState::AwaitingHello;
-  if (!transport_.sendText(helloMessage())) failClosed();
+  if (!transport_.sendText(helloMessage())) failClosed("client_hello_send");
 }
 
 void XiaozhiSession::onTransportDisconnected() {
@@ -103,7 +107,9 @@ void XiaozhiSession::onTransportText(std::string_view text) {
   }
   if (state_ != SessionState::AwaitingHello || text.size() > 8192U ||
       !jsonlite::isValidObject(text)) {
-    if (state_ == SessionState::AwaitingHello) failClosed();
+    if (state_ == SessionState::AwaitingHello) {
+      failClosed("server_hello_envelope");
+    }
     return;
   }
 
@@ -116,7 +122,7 @@ void XiaozhiSession::onTransportText(std::string_view text) {
       transport.stringValue() != "websocket" ||
       !jsonlite::findMember(text, "audio_params", audio) ||
       audio.kind != jsonlite::ValueKind::Object) {
-    failClosed();
+    failClosed("server_hello_fields");
     return;
   }
 
@@ -129,16 +135,19 @@ void XiaozhiSession::onTransportText(std::string_view text) {
       !jsonlite::findMember(audio.raw, "frame_duration", frameDuration) ||
       !parseUnsigned(frameDuration, parsedDuration) ||
       !validFrameDuration(parsedDuration)) {
-    failClosed();
+    failClosed("server_hello_audio");
     return;
   }
 
   jsonlite::ValueView sessionId;
-  if (jsonlite::findMember(text, "session_id", sessionId) &&
-      sessionId.kind == jsonlite::ValueKind::String &&
-      sessionId.stringValue().size() <= 128U) {
-    sessionId_.assign(sessionId.stringValue());
+  if (!jsonlite::findMember(text, "session_id", sessionId) ||
+      sessionId.kind != jsonlite::ValueKind::String ||
+      sessionId.stringValue().empty() ||
+      sessionId.stringValue().size() > 128U) {
+    failClosed("server_hello_session");
+    return;
   }
+  sessionId_.assign(sessionId.stringValue());
   downlinkSampleRate_ = parsedRate;
   downlinkFrameDurationMs_ = static_cast<uint16_t>(parsedDuration);
   state_ = SessionState::Ready;
@@ -162,13 +171,20 @@ void XiaozhiSession::onTransportBinary(const uint8_t* data,
   }
 }
 
-void XiaozhiSession::onTransportError() { failClosed(); }
+void XiaozhiSession::onTransportError() { failClosed("transport_error"); }
 
-void XiaozhiSession::failClosed() {
+void XiaozhiSession::failClosed(const char* reason, bool notifyClosed) {
+#ifdef ARDUINO
+  Serial.print(F("[SMV][XIAOZHI] session fail="));
+  Serial.println(reason);
+#else
+  (void)reason;
+#endif
   state_ = SessionState::Error;
   sessionId_.clear();
   invalidateOnce();
   transport_.disconnect();
+  if (notifyClosed && eventSink_ != nullptr) eventSink_->onSessionClosed();
 }
 
 void XiaozhiSession::invalidateOnce() {

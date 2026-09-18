@@ -9,6 +9,8 @@ enum class AppEventType : uint8_t {
   WifiConnected,
   WifiDisconnected,
   WifiPortalStarted,
+  CloudConnecting,
+  ActivationRequired,
   CloudConnected,
   CloudDisconnected,
   StartListening,

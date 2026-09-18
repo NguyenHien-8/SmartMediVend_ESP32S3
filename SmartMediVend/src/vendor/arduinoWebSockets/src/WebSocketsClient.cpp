@@ -756,7 +756,9 @@ void WebSocketsClient::sendHeader(WSclient_t * client) {
 
     handshake += NEW_LINE;
 
-    DEBUG_WEBSOCKETS("[WS-Client][sendHeader] handshake %s", (uint8_t *)handshake.c_str());
+    // Never log the serialized handshake: extraHeaders can contain the
+    // Xiaozhi bearer token.
+    DEBUG_WEBSOCKETS("[WS-Client][sendHeader] handshake bytes=%u\n", handshake.length());
     write(client, (uint8_t *)handshake.c_str(), handshake.length());
 
 #if (WEBSOCKETS_NETWORK_TYPE == NETWORK_ESP8266_ASYNC)

@@ -81,7 +81,7 @@ std::string McpServer::toolsListJson() {
     {"name":"smartmedivend.get_device_status","description":"Read-only device and safety-lock state. Never controls vending.","inputSchema":{"type":"object","additionalProperties":false}},
     {"name":"smartmedivend.get_inventory","description":"Read-only estimated blister stock. Stock is command-sent-unverified because no drop sensor is installed.","inputSchema":{"type":"object","additionalProperties":false}},
     {"name":"smartmedivend.get_medicine_info","description":"Read local pharmacist-reviewable catalog information by canonical medicine id. Never accepts SKU or channel.","inputSchema":{"type":"object","required":["canonical_id"],"properties":{"canonical_id":{"type":"string"}},"additionalProperties":false}},
-    {"name":"smartmedivend.submit_symptom_data","description":"Submit only extracted patient answers. The ESP32 independently validates safety and selects at most three canonical medicines. Never send SKU, channel, relay, quantity, or vend fields.","inputSchema":{"type":"object","required":["session_id"],"properties":{
+    {"name":"smartmedivend.submit_symptom_data","description":"Submit only extracted patient answers. The ESP32 independently validates safety and selects at most three canonical medicines. Never send SKU, channel, relay, quantity, or vend fields.","inputSchema":{"type":"object","required":["session_id","turn_id"],"properties":{
       "session_id":{"type":"string","maxLength":128},"turn_id":{"type":"integer","minimum":0,"maximum":1000000},
       "age_years":{"type":"integer","minimum":0,"maximum":120},"weight_kg":{"type":"integer","minimum":1,"maximum":300},
       "pregnancy_or_breastfeeding":{"type":"boolean"},"duration_hours":{"type":"integer","minimum":0,"maximum":87600},

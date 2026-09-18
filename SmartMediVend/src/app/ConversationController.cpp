@@ -83,6 +83,16 @@ void ConversationController::dispatch(AppEventType event) {
       state_ = AppState::WifiPortal;
       break;
 
+    case AppEventType::CloudConnecting:
+      invalidate();
+      state_ = AppState::CloudConnecting;
+      break;
+
+    case AppEventType::ActivationRequired:
+      invalidate();
+      state_ = AppState::Activating;
+      break;
+
     case AppEventType::CloudConnected:
       state_ = AppState::Idle;
       break;

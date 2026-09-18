@@ -64,25 +64,56 @@ TextMessageView XiaozhiProtocol::parseText(std::string_view json) {
   const std::string_view textValue =
       jsonlite::findMember(json, "text", text) ? text.stringValue()
                                                 : std::string_view{};
-  if (name == "hello") return {TextMessageType::Hello, textValue};
-  if (name == "stt") return {TextMessageType::Stt, textValue};
-  if (name == "llm") return {TextMessageType::Llm, textValue};
-  if (name == "mcp") return {TextMessageType::Mcp, textValue};
-  if (name == "system") return {TextMessageType::System, textValue};
-  if (name == "alert") return {TextMessageType::Alert, textValue};
+  jsonlite::ValueView sessionId;
+  const std::string_view sessionValue =
+      jsonlite::findMember(json, "session_id", sessionId) &&
+              sessionId.kind == jsonlite::ValueKind::String
+          ? sessionId.stringValue()
+          : std::string_view{};
+  if (name == "hello") {
+    return {TextMessageType::Hello, textValue, sessionValue};
+  }
+  if (name == "stt") return {TextMessageType::Stt, textValue, sessionValue};
+  if (name == "llm") return {TextMessageType::Llm, textValue, sessionValue};
+  if (name == "mcp") return {TextMessageType::Mcp, textValue, sessionValue};
+  if (name == "system") {
+    return {TextMessageType::System, textValue, sessionValue};
+  }
+  if (name == "alert") {
+    return {TextMessageType::Alert, textValue, sessionValue};
+  }
   if (name == "tts") {
     jsonlite::ValueView state;
     if (!jsonlite::findMember(json, "state", state)) {
       return {TextMessageType::Malformed, {}};
     }
     const auto stateName = state.stringValue();
-    if (stateName == "start") return {TextMessageType::TtsStart, textValue};
-    if (stateName == "stop") return {TextMessageType::TtsStop, textValue};
+    if (stateName == "start") {
+      return {TextMessageType::TtsStart, textValue, sessionValue};
+    }
+    if (stateName == "stop") {
+      return {TextMessageType::TtsStop, textValue, sessionValue};
+    }
     if (stateName == "sentence_start") {
-      return {TextMessageType::TtsSentenceStart, textValue};
+      return {TextMessageType::TtsSentenceStart, textValue, sessionValue};
     }
   }
-  return {TextMessageType::Unknown, textValue};
+  return {TextMessageType::Unknown, textValue, sessionValue};
+}
+
+bool XiaozhiProtocol::isSessionScoped(TextMessageType type) {
+  return type == TextMessageType::Mcp || type == TextMessageType::Stt ||
+         type == TextMessageType::TtsStart ||
+         type == TextMessageType::TtsStop ||
+         type == TextMessageType::TtsSentenceStart;
+}
+
+bool XiaozhiProtocol::matchesActiveSession(
+    const TextMessageView& message,
+    std::string_view activeSessionId) {
+  if (!isSessionScoped(message.type)) return true;
+  return !activeSessionId.empty() && !message.sessionId.empty() &&
+         message.sessionId == activeSessionId;
 }
 
 }  // namespace smv::protocol

@@ -10,6 +10,7 @@ enum class AppState : uint8_t {
   WifiPortal,
   Offline,
   CloudConnecting,
+  Activating,
   Idle,
   Listening,
   Processing,

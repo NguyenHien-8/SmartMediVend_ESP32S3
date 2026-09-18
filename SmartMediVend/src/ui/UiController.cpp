@@ -34,6 +34,8 @@ void UiController::render(
 
 const char* UiController::titleFor(AppState state) {
   switch (state) {
+    case AppState::CloudConnecting: return "CLOUD CONNECT";
+    case AppState::Activating: return "ACTIVATION";
     case AppState::Listening: return "LISTENING";
     case AppState::Processing: return "CHECKING";
     case AppState::Speaking: return "SPEAKING";

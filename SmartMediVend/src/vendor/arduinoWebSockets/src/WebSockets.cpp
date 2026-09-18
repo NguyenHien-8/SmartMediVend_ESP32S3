@@ -212,7 +212,7 @@ bool WebSockets::sendFrame(WSclient_t * client, WSopcode_t opcode, uint8_t * pay
     DEBUG_WEBSOCKETS("[WS][%d][sendFrame] fin: %u opCode: %u mask: %u length: %u headerToPayload: %u\n", client->num, fin, opcode, client->cIsClient, length, headerToPayload);
 
     if(opcode == WSop_text) {
-        DEBUG_WEBSOCKETS("[WS][%d][sendFrame] text: %s\n", client->num, (payload + (headerToPayload ? 14 : 0)));
+        DEBUG_WEBSOCKETS("[WS][%d][sendFrame] text bytes=%u\n", client->num, length);
     }
 
     uint8_t maskKey[4]                         = { 0x00, 0x00, 0x00, 0x00 };
@@ -481,7 +481,7 @@ void WebSockets::handleWebsocketPayloadCb(WSclient_t * client, bool ok, uint8_t 
 
         switch(header->opCode) {
             case WSop_text:
-                DEBUG_WEBSOCKETS("[WS][%d][handleWebsocket] text: %s\n", client->num, payload);
+                DEBUG_WEBSOCKETS("[WS][%d][handleWebsocket] text bytes=%u\n", client->num, header->payloadLen);
                 // fallthrough
             case WSop_binary:
             case WSop_continuation:

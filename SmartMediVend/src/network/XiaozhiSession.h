@@ -61,7 +61,7 @@ class XiaozhiSession final : public IXiaozhiTransportListener {
   void onTransportError() override;
 
  private:
-  void failClosed();
+  void failClosed(const char* reason, bool notifyClosed = true);
   void invalidateOnce();
   std::string helloMessage() const;
 

@@ -13,6 +13,7 @@
 #include "../mcp/McpServer.h"
 #include "../mcp/SmartMediVendTools.h"
 #include "../medical/MedicalRuleEngine.h"
+#include "../medical/SessionTurnGate.h"
 #include "../network/WiFiService.h"
 #include "../network/XiaozhiBootstrapClient.h"
 #include "../network/XiaozhiSession.h"
@@ -55,12 +56,16 @@ class SmartMediVendApp final : public IConversationActions,
 
  private:
   enum class BootstrapTaskState : uint8_t { Idle = 0, Running, Complete };
+  enum class CloudTaskOperation : uint8_t { Bootstrap = 0, ActivationPoll };
 
   static void bootstrapTaskEntry(void* context);
   void startBootstrap();
+  void startActivationPoll();
+  bool startCloudTask(CloudTaskOperation operation);
   void processBootstrap(uint32_t nowMs);
   void processButton();
   void processVending(uint32_t nowMs);
+  void scheduleCloudReconnect(uint32_t nowMs, std::string_view detail);
   void sendUplinkAudio();
   bool sendAudioFrame(const audio::OpusFrame& frame);
   void renderUi(std::string_view detail);
@@ -70,6 +75,9 @@ class SmartMediVendApp final : public IConversationActions,
   static std::string jsonEscape(std::string_view value);
   static const char* stateName(AppState state);
   static std::string stableClientId();
+  static std::string normalizedDeviceId();
+  static bool productionReviewApproved();
+  static const char* bootstrapErrorName(network::BootstrapError error);
 
   DisplayManager display_;
   ui::UiController ui_;
@@ -86,6 +94,7 @@ class SmartMediVendApp final : public IConversationActions,
   network::XiaozhiSession session_;
   ConversationController conversation_;
   medical::MedicalRuleEngine ruleEngine_;
+  medical::SessionTurnGate sessionTurnGate_;
   vending::ConfirmationGate confirmation_;
   mcp::SmartMediVendTools tools_;
   mcp::McpServer mcpServer_;
@@ -99,11 +108,22 @@ class SmartMediVendApp final : public IConversationActions,
   AppState lastRenderedState_ = AppState::Booting;
   uint32_t lastRenderAtMs_ = 0;
   uint32_t nextBootstrapAtMs_ = 0;
+  uint32_t nextActivationPollAtMs_ = 0;
+  uint32_t activationStartedAtMs_ = 0;
+  uint32_t activationTimeoutMs_ = 0;
+  uint32_t sessionAttemptStartedAtMs_ = 0;
+  uint32_t cloudEpoch_ = 0;
+  uint32_t cloudTaskEpoch_ = 0;
   uint8_t bootstrapFailures_ = 0;
   uint32_t audioTimestamp_ = 0;
+  bool activationPending_ = false;
+  bool lastPortalActive_ = false;
+  std::string uiDetail_;
 
   network::BootstrapRequest bootstrapRequest_;
   network::BootstrapResult bootstrapResult_;
+  network::ActivationPollResult activationPollResult_;
+  CloudTaskOperation cloudTaskOperation_ = CloudTaskOperation::Bootstrap;
   std::atomic<BootstrapTaskState> bootstrapTaskState_{
       BootstrapTaskState::Idle};
 };

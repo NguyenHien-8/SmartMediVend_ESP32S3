@@ -25,6 +25,7 @@ class XiaozhiWebSocketTransport final : public IXiaozhiTransport {
  private:
   IXiaozhiTransportListener* listener_ = nullptr;
   std::string headers_;
+  bool active_ = false;
 #ifdef ARDUINO
   WebSocketsClient socket_;
 #endif

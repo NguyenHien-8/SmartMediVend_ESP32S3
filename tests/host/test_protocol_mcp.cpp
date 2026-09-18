@@ -77,8 +77,15 @@ TEST_CASE("Xiaozhi v2 and v3 expose only validated payload") {
 }
 
 TEST_CASE("Xiaozhi text parser recognizes supported types and rejects malformed JSON") {
-  REQUIRE(XiaozhiProtocol::parseText(R"({"type":"stt","text":"xin chao"})")
-              .type == TextMessageType::Stt);
+  const auto stt = XiaozhiProtocol::parseText(
+      R"({"type":"stt","text":"xin chao","session_id":"session-1"})");
+  REQUIRE(stt.type == TextMessageType::Stt);
+  REQUIRE(stt.sessionId == "session-1");
+  REQUIRE(XiaozhiProtocol::matchesActiveSession(stt, "session-1"));
+  REQUIRE_FALSE(XiaozhiProtocol::matchesActiveSession(stt, "session-2"));
+  REQUIRE_FALSE(XiaozhiProtocol::matchesActiveSession(
+      XiaozhiProtocol::parseText(R"({"type":"stt","text":"dong y"})"),
+      "session-1"));
   REQUIRE(XiaozhiProtocol::parseText(R"({"type":"tts","state":"start"})")
               .type == TextMessageType::TtsStart);
   REQUIRE(XiaozhiProtocol::parseText("not-json").type ==

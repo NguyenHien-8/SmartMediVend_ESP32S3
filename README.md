@@ -1,121 +1,107 @@
-# SmartMediVend ESP32-S3
+# SmartMediVend ESP32-S3-N16R8
 
-This package implements the first SmartMediVend firmware layer:
+Firmware máy cấp vỉ thuốc có hội thoại Xiaozhi, bộ luật an toàn chạy cục bộ
+trên ESP32 và cơ cấu 16 relay qua CD74HC4067.
 
-- ESP32-S3
-- ESP32WiFiPortal **2.1.2**
-- ILI9341 2.4" SPI TFT, 320x240
-- Non-blocking on-demand Wi-Fi captive portal
-- Active-HIGH SET WIFI button with external 4.7 kOhm pull-down
-- Hold button for **2 seconds** to open the portal
-- TFT status UI with spinner, Wi-Fi signal bars and hold-progress animation
-- Structure intended to be extended later with Xiaozhi, INMP441, MAX98357A,
-  medicine selection and vending/actuator modules.
+> **Khóa an toàn mặc định:** firmware được build với
+> `SMV_PRODUCTION_VENDING_ENABLED=0` và `SMV_PHARMACIST_APPROVED=0`.
+> Relay không được phép cấp thuốc thực tế cho đến khi danh mục và bộ luật đã
+> được dược sĩ duyệt đúng phiên bản.
 
-## GPIO mapping
+## Ranh giới quyền hạn
 
-| Function | ESP32-S3 GPIO |
+- Xiaozhi/AI chỉ hội thoại và gửi các câu trả lời có cấu trúc.
+- ESP32 tự kiểm tra tuổi, cân nặng, thai kỳ/cho con bú, dấu hiệu nguy hiểm,
+  bệnh nền, thuốc đang dùng, chống chỉ định và tồn kho.
+- AI không nhận SKU/channel/relay và không thể gọi thao tác cấp thuốc.
+- Chỉ ESP32 ánh xạ `canonical_id` sang channel, yêu cầu xác nhận cuối, kích
+  relay LOW 500 ms tuần tự và trừ tồn kho sau mỗi xung đã gửi.
+- Không có cảm biến rơi; tồn kho là `command_sent_unverified`.
+
+## Cấu hình phần cứng
+
+| Chức năng | GPIO |
 |---|---:|
-| TFT CS | 10 |
-| TFT RST | 14 |
-| TFT DC | 9 |
-| TFT MOSI | 11 |
-| TFT SCLK | 12 |
-| TFT BL | 13 |
-| SET WIFI button | 18 |
+| TFT ST7789 CS / RST / DC | 10 / 14 / 9 |
+| TFT MOSI / SCLK / BL | 11 / 12 / 13 |
+| Nút SET WIFI | 18 |
+| INMP441 SD / WS / SCK | 6 / 4 / 5 |
+| MAX98357A LRC / BCLK / DIN | 16 / 15 / 7 |
+| CD74HC4067 S0 / S1 / S2 / S3 | 39 / 40 / 41 / 42 |
+| CD74HC4067 SIG | 17 |
 
-> The duplicated `#define TFT_BL 18` from the requirement was interpreted as
-> `BT_SETWIFI = 18`. TFT backlight remains GPIO13.
+GPIO43/44 không dùng. GPIO35–37 không dùng vì ESP32-S3-N16R8 dành chúng cho
+Octal PSRAM. Relay 16 kênh là active-LOW; trạng thái nghỉ là HIGH.
 
-Button wiring:
+Nút GPIO18 dùng điện trở kéo xuống ngoài 4,7 kΩ:
 
-- GPIO18 -> button -> 3.3 V
-- 4.7 kOhm resistor from GPIO18 to GND
-- Pressed = HIGH
-- Released = LOW
+- nhấn ngắn: bắt đầu/dừng nghe khi cloud đã sẵn sàng;
+- giữ 2 giây: mở Wi-Fi Portal.
 
-## Required Arduino libraries
+## Cấu hình Arduino IDE bắt buộc
 
-Install:
+- Board: **ESP32S3 Dev Module**
+- Flash Size: **16 MB**
+- Partition Scheme: **3 MB APP / 9 MB FATFS**
+- PSRAM: **OPI PSRAM**
+- Flash Mode: **QIO**
+- CPU Frequency: **240 MHz**
+- USB Mode: **Hardware CDC and JTAG**
+- USB CDC On Boot: **Disabled** khi dùng cầu CH343/COM nối tiếp trên bo
 
-1. **ESP32WiFiPortal 2.1.2**  
-   https://github.com/NguyenHien-8/ESP32WiFiPortal
-2. **Adafruit GFX Library**
-3. **Adafruit ILI9341**
-4. **Adafruit BusIO** (normally installed automatically as an Adafruit GFX dependency)
+Nếu bật `USB CDC On Boot`, chương trình vẫn chạy nhưng log `Serial` chuyển sang
+cổng USB native; COM của CH343 chỉ còn hiện log boot ROM. Điều này dễ làm nhầm
+rằng firmware bị treo.
 
-Select an ESP32-S3 board in Arduino IDE and compile `SmartMediVend.ino`.
+Lệnh build đã xác minh:
 
-## Firmware structure
-
-```text
-SmartMediVend/
-├── SmartMediVend.ino
-├── AppConfig.h
-├── HardwarePins.h
-├── WiFiManager.h
-├── WiFiManager.cpp
-├── DisplayManager.h
-├── DisplayManager.cpp
-└── README.md
+```powershell
+arduino-cli compile `
+  --fqbn "esp32:esp32:esp32s3:FlashSize=16M,PartitionScheme=app3M_fat9M_16MB,PSRAM=opi,USBMode=hwcdc,CDCOnBoot=default,CPUFreq=240,FlashMode=qio" `
+  SmartMediVend
 ```
 
-### `SmartMediVend.ino`
+## Kích hoạt Xiaozhi
 
-Only coordinates subsystems. Keep it small.
+Firmware dùng endpoint provisioning chính thức:
+`https://api.tenclass.net/xiaozhi/ota/`.
 
-### `WiFiManager`
+Luồng runtime:
 
-Owns:
+1. ESP32 kết nối Wi-Fi và POST thông tin hệ thống qua HTTPS.
+2. Nếu chưa liên kết, TFT hiển thị `ACTIVATION`, mã sáu số và `xiaozhi.me`.
+3. Nhập mã tại Xiaozhi Control Panel.
+4. Firmware long-poll `POST /activate`: HTTP 202 nghĩa là đang chờ, HTTP 200
+   nghĩa là đã liên kết.
+5. Firmware gọi lại endpoint OTA để nhận URL/token WSS, bắt tay WebSocket TLS,
+   gửi client `hello` và chỉ chuyển sang `READY` sau server `hello` hợp lệ.
 
-- ESP32WiFiPortal
-- saved Wi-Fi boot connection
-- ESP32WiFiPortal Auto Reconnect
-- asynchronous captive portal
-- 2-second SET WIFI button debounce/hold detector
-- lightweight Wi-Fi data cached for the display
-
-It does **not** implement a second reconnect algorithm. Reconnect/backoff stays
-inside ESP32WiFiPortal 2.1.2.
-
-### `DisplayManager`
-
-Owns the TFT only. It uses partial/redraw-on-change rendering rather than
-continually clearing the full screen, reducing flicker and SPI traffic.
-
-## Wi-Fi behavior
-
-1. Power on.
-2. Show boot UI.
-3. Try saved credentials for a bounded 12 s connection attempt.
-4. If connected: show SSID, IP and RSSI.
-5. If unavailable: remain in offline mode.
-6. Hold SET WIFI for 2 s:
-   - button progress appears on TFT;
-   - `startConfigPortalAsync()` opens `SmartMediVend-Setup`;
-   - TFT shows AP name and portal IP;
-   - main `loop()` remains cooperative.
-7. When new credentials connect successfully, ESP32WiFiPortal saves them and
-   the screen returns to ONLINE.
-8. If Wi-Fi later drops, ESP32WiFiPortal's own Auto Reconnect handles recovery.
-
-## Portal password
-
-Default development password:
+TLS luôn xác minh CA. Không dùng `setInsecure()`. Token WSS không được ghi ra
+Serial. Các log chẩn đoán an toàn có tiền tố `[SMV][XIAOZHI]`, ví dụ:
 
 ```text
-SMV-Setup-2026
+[SMV][XIAOZHI] bootstrap result=OK HTTP=200
+[SMV][XIAOZHI] activation code=123456 long_poll_timeout_ms=35000
+[SMV][XIAOZHI] activation HTTP=202 error=OK
+[SMV][XIAOZHI] WSS transport connected
 ```
 
-Change `WIFI_PORTAL_PASSWORD` in `AppConfig.h` before deployment.
+Nếu lỗi, ghi lại dòng `bootstrap result=... HTTP=...`, `activation HTTP=...` hoặc
+`WSS ...`; không chụp/đăng token hoặc nội dung header Authorization.
 
-## Important TFT note
+## Dữ liệu và kiểm duyệt dược sĩ
 
-This package assumes the 2.4" TFT uses an **ILI9341** controller. If your
-specific "2.4 inch V1.3" board uses ST7789 or another controller, keep
-`WiFiManager` unchanged and replace only the driver-specific part of
-`DisplayManager`.
+- Danh mục 16 channel: `SmartMediVend/data/medicines.json`
+- Bộ luật cục bộ: `SmartMediVend/data/medical_rules.json`
+- Trạng thái duyệt: `SmartMediVend/data/pharmacist_review.json`
 
-The built-in Adafruit GFX font is used intentionally for a small, stable
-baseline, so TFT text is English/ASCII. Vietnamese Unicode fonts can be added
-later without changing the Wi-Fi architecture.
+`pharmacist_review.json` hiện là `approved: false`. Để triển khai thực tế cần
+dược sĩ duyệt nội dung, ghi đúng `catalog_version` và `rules_version`, sau đó
+build với cả cờ production và thông tin phiên bản đã duyệt. Chỉ bật một cờ hoặc
+sai phiên bản vẫn bị khóa fail-closed.
+
+## Kiểm thử
+
+Host test nằm trong `tests/host` và bao phủ bộ luật an toàn, tồn kho, xác nhận,
+relay 500 ms, parser Xiaozhi, session/turn và MCP. Trước khi nạp cần chạy host
+test, build đúng FQBN ở trên, sau đó xác minh Serial từ bootstrap đến WSS.

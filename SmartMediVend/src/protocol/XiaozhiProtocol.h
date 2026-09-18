@@ -16,6 +16,9 @@ class XiaozhiProtocol {
                                      const uint8_t* data,
                                      std::size_t length);
   static TextMessageView parseText(std::string_view json);
+  static bool isSessionScoped(TextMessageType type);
+  static bool matchesActiveSession(const TextMessageView& message,
+                                   std::string_view activeSessionId);
 };
 
 }  // namespace smv::protocol

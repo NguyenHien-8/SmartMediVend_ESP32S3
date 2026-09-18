@@ -1,12 +1,13 @@
 #pragma once
 
 #include <Arduino.h>
+#include "src/network/XiaozhiCertificates.h"
 
 namespace smv {
 namespace config {
 
 #ifndef SMV_XIAOZHI_ROOT_CA_PEM
-#define SMV_XIAOZHI_ROOT_CA_PEM ""
+#define SMV_XIAOZHI_ROOT_CA_PEM smv::network::kXiaozhiRootCaBundle
 #endif
 
 #ifndef SMV_PRODUCTION_VENDING_ENABLED

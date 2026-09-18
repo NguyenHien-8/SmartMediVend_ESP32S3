@@ -40,6 +40,7 @@ enum class TextMessageType : uint8_t {
 struct TextMessageView {
   TextMessageType type = TextMessageType::Malformed;
   std::string_view text;
+  std::string_view sessionId;
 };
 
 }  // namespace smv::protocol
