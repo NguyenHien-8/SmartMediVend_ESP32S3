@@ -63,11 +63,16 @@ bool XiaozhiWebSocketTransport::connect(const TransportConfig& config) {
   if (!authorization.empty() && authorization.find(' ') == std::string::npos) {
     authorization.insert(0, "Bearer ");
   }
+  // arduinoWebSockets::setExtraHeaders() appends its own CRLF after the
+  // supplied block. Do not end this string with CRLF, otherwise the library
+  // emits an empty line before its User-Agent header. That prematurely ends
+  // the HTTP Upgrade headers and leaves "User-Agent: ..." as bytes after the
+  // handshake, which Xiaozhi accepts at HTTP level and then closes immediately.
   headers_ = "Authorization: " + authorization + "\r\n" +
              "Protocol-Version: " +
              std::to_string(config.protocolVersion) + "\r\n" +
              "Device-Id: " + config.deviceId + "\r\n" +
-             "Client-Id: " + config.clientId + "\r\n";
+             "Client-Id: " + config.clientId;
   socket_.setExtraHeaders(headers_.c_str());
   // This library interprets zero as "retry on every loop", not "disabled".
   // Keep failed TCP handshakes bounded while XiaozhiSession owns the actual
