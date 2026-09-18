@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <Arduino.h>
 #include "src/network/XiaozhiCertificates.h"
 
@@ -70,8 +71,8 @@ static constexpr uint32_t RELAY_GUARD_GAP_MS = 100UL;
 static constexpr uint8_t MAX_MEDICINES_PER_TRANSACTION = 3;
 
 // ---------- Bounded protocol input ----------
-static constexpr size_t MAX_PROTOCOL_JSON_BYTES = 8192U;
-static constexpr size_t MAX_MCP_ARGUMENT_BYTES = 4096U;
+static constexpr std::size_t MAX_PROTOCOL_JSON_BYTES = 8192U;
+static constexpr std::size_t MAX_MCP_ARGUMENT_BYTES = 4096U;
 
 }  // namespace config
 }  // namespace smv

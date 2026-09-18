@@ -41,22 +41,22 @@ void AudioService::process() {
     }
     microphoneSamples_ += received;
     if (microphoneSamples_ == codec_.encoderFrameSamples()) {
-      OpusFrame encoded;
+      workOpusFrame_.size = 0;
       if (codec_.encode(microphoneFrame_.samples.data(), microphoneSamples_,
-                        encoded)) {
-        uplink_.push(encoded);
+                        workOpusFrame_)) {
+        uplink_.push(workOpusFrame_);
       }
       microphoneSamples_ = 0;
     }
   }
 
-  OpusFrame encodedDownlink;
-  if (downlink_.pop(encodedDownlink)) {
-    PcmFrame decoded;
-    if (!codec_.decode(encodedDownlink.data.data(), encodedDownlink.size,
-                       decoded)) {
+  if (downlink_.pop(workOpusFrame_)) {
+    decodedFrame_.count = 0;
+    if (!codec_.decode(workOpusFrame_.data.data(), workOpusFrame_.size,
+                       decodedFrame_)) {
       ++decodeErrors_;
-    } else if (!speaker_.write(decoded.samples.data(), decoded.count, 10)) {
+    } else if (!speaker_.write(decodedFrame_.samples.data(),
+                               decodedFrame_.count, 10)) {
       ++speakerErrors_;
     }
   }
@@ -81,11 +81,10 @@ bool AudioService::pushDownlink(const uint8_t* data,
                                 std::size_t size,
                                 uint32_t timestamp) {
   if (data == nullptr || size == 0 || size > kMaximumOpusBytes) return false;
-  OpusFrame frame;
-  std::memcpy(frame.data.data(), data, size);
-  frame.size = size;
-  frame.timestamp = timestamp;
-  return downlink_.push(frame);
+  std::memcpy(workOpusFrame_.data.data(), data, size);
+  workOpusFrame_.size = size;
+  workOpusFrame_.timestamp = timestamp;
+  return downlink_.push(workOpusFrame_);
 }
 
 }  // namespace smv::audio

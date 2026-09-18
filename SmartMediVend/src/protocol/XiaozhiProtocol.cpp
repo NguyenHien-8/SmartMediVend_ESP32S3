@@ -52,12 +52,12 @@ AudioPacketView XiaozhiProtocol::parseBinary(uint8_t protocolVersion,
 
 TextMessageView XiaozhiProtocol::parseText(std::string_view json) {
   if (json.size() > kMaxTextBytes || !jsonlite::isValidObject(json)) {
-    return {TextMessageType::Malformed, {}};
+    return {TextMessageType::Malformed, {}, {}};
   }
   jsonlite::ValueView type;
   if (!jsonlite::findMember(json, "type", type) ||
       type.kind != jsonlite::ValueKind::String) {
-    return {TextMessageType::Malformed, {}};
+    return {TextMessageType::Malformed, {}, {}};
   }
   const auto name = type.stringValue();
   jsonlite::ValueView text;
@@ -85,7 +85,7 @@ TextMessageView XiaozhiProtocol::parseText(std::string_view json) {
   if (name == "tts") {
     jsonlite::ValueView state;
     if (!jsonlite::findMember(json, "state", state)) {
-      return {TextMessageType::Malformed, {}};
+      return {TextMessageType::Malformed, {}, {}};
     }
     const auto stateName = state.stringValue();
     if (stateName == "start") {

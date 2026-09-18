@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <Arduino.h>
 
 namespace smv {
@@ -47,10 +48,10 @@ constexpr uint8_t ASSIGNED_PINS[] = {
     MAX98357_LRC, MAX98357_BCLK, MAX98357_DIN, MUX_S0,       MUX_S1,
     MUX_S2,       MUX_S3,       MUX_SIG};
 
-template <size_t N>
+template <std::size_t N>
 constexpr bool pinsAreUnique(const uint8_t (&values)[N]) {
-  for (size_t i = 0; i < N; ++i) {
-    for (size_t j = i + 1; j < N; ++j) {
+  for (std::size_t i = 0; i < N; ++i) {
+    for (std::size_t j = i + 1; j < N; ++j) {
       if (values[i] == values[j]) {
         return false;
       }

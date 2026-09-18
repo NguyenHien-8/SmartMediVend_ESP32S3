@@ -39,6 +39,16 @@ class AudioService {
   FixedFrameQueue<OpusFrame, 6> downlink_;
   std::array<int32_t, kMaximumPcmSamples> rawMicrophone_{};
   PcmFrame microphoneFrame_{};
+
+  // Reusable audio work buffers live in the service object instead of the
+  // Arduino loopTask stack. PcmFrame is ~5.8 KB and OpusFrame is ~1.3 KB;
+  // keeping them as locals made AudioService::process() require ~7.1 KB of
+  // stack, leaving almost no headroom in Arduino-ESP32's default 8 KB loopTask.
+  // That was enough to trigger the loopTask stack canary as soon as live
+  // microphone encoding began after a short button press.
+  OpusFrame workOpusFrame_{};
+  PcmFrame decodedFrame_{};
+
   std::size_t microphoneSamples_ = 0;
   bool listening_ = false;
   bool initialized_ = false;
