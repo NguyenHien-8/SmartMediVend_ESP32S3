@@ -33,7 +33,8 @@ trên ESP32 và cơ cấu 16 relay qua CD74HC4067.
 GPIO43/44 không dùng. GPIO35–37 không dùng vì ESP32-S3-N16R8 dành chúng cho
 Octal PSRAM. Relay 16 kênh là active-LOW; trạng thái nghỉ là HIGH.
 
-Nút GPIO18 dùng điện trở kéo xuống ngoài 4,7 kΩ:
+Nút GPIO18 active-HIGH dùng pull-down nội của ESP32-S3; nên giữ thêm điện trở
+kéo xuống ngoài 4,7 kΩ trên máy thực:
 
 - nhấn ngắn: bắt đầu/dừng nghe khi cloud đã sẵn sàng;
 - giữ 2 giây: mở Wi-Fi Portal.

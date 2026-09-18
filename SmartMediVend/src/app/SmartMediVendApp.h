@@ -116,6 +116,14 @@ class SmartMediVendApp final : public IConversationActions,
   uint32_t cloudTaskEpoch_ = 0;
   uint8_t bootstrapFailures_ = 0;
   uint32_t audioTimestamp_ = 0;
+
+  // Keep audio TX work buffers off Arduino loopTask stack. A full OpusFrame
+  // plus the v2/v3 framing buffer is ~2.6 KB; keeping both as nested locals
+  // reduces stack headroom exactly when a short press starts microphone TX.
+  audio::OpusFrame uplinkWorkFrame_{};
+  std::array<uint8_t, audio::kMaximumOpusBytes + 16> uplinkPacket_{};
+  bool audioStackReported_ = false;
+
   bool activationPending_ = false;
   bool lastPortalActive_ = false;
   std::string uiDetail_;

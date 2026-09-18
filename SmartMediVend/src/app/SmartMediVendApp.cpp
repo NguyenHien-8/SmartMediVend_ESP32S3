@@ -4,6 +4,9 @@
 #include <algorithm>
 #include <cctype>
 #include <cstdio>
+#include <esp_system.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 #include "../../AppConfig.h"
 #include "../core/Elapsed.h"
@@ -48,6 +51,14 @@ void SmartMediVendApp::begin() {
   delay(50);
   Serial.println();
   Serial.println(F("=== SmartMediVend ESP32-S3 N16R8 ==="));
+  Serial.print(F("[SMV][BOOT] reset_reason="));
+  Serial.print(static_cast<unsigned int>(esp_reset_reason()));
+  Serial.print(F(" loop_stack_bytes="));
+  Serial.print(static_cast<unsigned long>(getArduinoLoopTaskStackSize()));
+  Serial.print(F(" stack_free_min="));
+  Serial.print(static_cast<unsigned int>(uxTaskGetStackHighWaterMark(nullptr)));
+  Serial.print(F(" heap_free="));
+  Serial.println(ESP.getFreeHeap());
 
   // Relay safety is initialized before display, network, audio, or storage.
   relay_.begin();
@@ -203,6 +214,10 @@ void SmartMediVendApp::onSessionReady(uint32_t sampleRate,
     return;
   }
   bootstrapFailures_ = 0;
+  Serial.print(F("[SMV][XIAOZHI] session READY sample_rate="));
+  Serial.print(sampleRate);
+  Serial.print(F(" frame_ms="));
+  Serial.println(frameDurationMs);
   conversation_.setCloudReady();
   renderUi(kNoCandidateDetail);
 }
@@ -578,8 +593,13 @@ void SmartMediVendApp::processButton() {
     return;
   }
   if (conversation_.state() == AppState::Listening) {
+    Serial.println(F("[SMV][BUTTON] short press -> stop listening"));
     conversation_.dispatch(AppEventType::StopListening);
   } else {
+    Serial.print(F("[SMV][BUTTON] short press -> start listening; stack_free_min="));
+    Serial.println(
+        static_cast<unsigned int>(uxTaskGetStackHighWaterMark(nullptr)));
+    audioStackReported_ = false;
     conversation_.dispatch(AppEventType::StartListening);
   }
   renderUi(conversation_.state() == AppState::Listening
@@ -612,33 +632,39 @@ void SmartMediVendApp::scheduleCloudReconnect(uint32_t nowMs,
 
 void SmartMediVendApp::sendUplinkAudio() {
   if (session_.state() != network::SessionState::Ready) return;
-  audio::OpusFrame frame;
-  if (audio_.takeUplink(frame)) sendAudioFrame(frame);
+  if (audio_.takeUplink(uplinkWorkFrame_)) {
+    if (!audioStackReported_) {
+      audioStackReported_ = true;
+      Serial.print(F("[SMV][AUDIO] first Opus frame; stack_free_min="));
+      Serial.println(
+          static_cast<unsigned int>(uxTaskGetStackHighWaterMark(nullptr)));
+    }
+    sendAudioFrame(uplinkWorkFrame_);
+  }
 }
 
 bool SmartMediVendApp::sendAudioFrame(const audio::OpusFrame& frame) {
   const uint8_t version = bootstrapResult_.config.protocolVersion;
   if (version == 1) return session_.sendAudio(frame.data.data(), frame.size);
-  std::array<uint8_t, audio::kMaximumOpusBytes + 16> packet{};
   std::size_t header = 0;
   if (version == 2) {
     header = 16;
-    writeBe16(packet.data(), 2);
-    writeBe16(packet.data() + 2, 0);
-    writeBe32(packet.data() + 4, 0);
-    writeBe32(packet.data() + 8, audioTimestamp_);
-    writeBe32(packet.data() + 12, static_cast<uint32_t>(frame.size));
+    writeBe16(uplinkPacket_.data(), 2);
+    writeBe16(uplinkPacket_.data() + 2, 0);
+    writeBe32(uplinkPacket_.data() + 4, 0);
+    writeBe32(uplinkPacket_.data() + 8, audioTimestamp_);
+    writeBe32(uplinkPacket_.data() + 12, static_cast<uint32_t>(frame.size));
     audioTimestamp_ += 60U;
   } else if (version == 3) {
     header = 4;
-    packet[0] = 0;
-    packet[1] = 0;
-    writeBe16(packet.data() + 2, static_cast<uint16_t>(frame.size));
+    uplinkPacket_[0] = 0;
+    uplinkPacket_[1] = 0;
+    writeBe16(uplinkPacket_.data() + 2, static_cast<uint16_t>(frame.size));
   } else {
     return false;
   }
-  std::copy_n(frame.data.data(), frame.size, packet.data() + header);
-  return session_.sendAudio(packet.data(), header + frame.size);
+  std::copy_n(frame.data.data(), frame.size, uplinkPacket_.data() + header);
+  return session_.sendAudio(uplinkPacket_.data(), header + frame.size);
 }
 
 void SmartMediVendApp::renderUi(std::string_view detail) {

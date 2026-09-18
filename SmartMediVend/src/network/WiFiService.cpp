@@ -15,7 +15,9 @@ WiFiService::WiFiService()
               config::WIFI_BUTTON_HOLD_MS) {}
 
 bool WiFiService::begin() {
-  pinMode(pins::BT_SETWIFI, INPUT);  // External 4.7 kOhm pull-down.
+  // Keep the active-HIGH input deterministic even if the external 4.7 kOhm
+  // pull-down is temporarily disconnected during bench testing.
+  pinMode(pins::BT_SETWIFI, INPUT_PULLDOWN);
 
   const uint32_t now = millis();
   button_.process(digitalRead(pins::BT_SETWIFI) == HIGH, now);
