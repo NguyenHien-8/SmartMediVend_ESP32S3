@@ -42,9 +42,9 @@ Nút GPIO18 dùng điện trở kéo xuống ngoài 4,7 kΩ:
 
 - Board: **ESP32S3 Dev Module**
 - Flash Size: **16 MB**
-- Partition Scheme: **3 MB APP / 9 MB FATFS**
+- Partition Scheme: **3MB APP / 9.9MB FATFS**
 - PSRAM: **OPI PSRAM**
-- Flash Mode: **QIO**
+- Flash Mode: **QIO 80MHZ**
 - CPU Frequency: **240 MHz**
 - USB Mode: **Hardware CDC and JTAG**
 - USB CDC On Boot: **Disabled** khi dùng cầu CH343/COM nối tiếp trên bo
