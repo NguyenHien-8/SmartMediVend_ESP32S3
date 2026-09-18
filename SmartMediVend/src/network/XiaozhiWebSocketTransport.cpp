@@ -128,6 +128,13 @@ bool XiaozhiWebSocketTransport::connect(const TransportConfig& config) {
         break;
     }
   });
+  // Keep the RFC 6455 transport alive even when the user is idle. The cloud
+  // side observed in bench logs closes an otherwise healthy socket at about
+  // 60 seconds of inactivity. A 20-second WebSocket ping stays comfortably
+  // below that idle window; two missed 5-second pong windows fail closed and
+  // let XiaozhiSession perform its normal reconnect/backoff path.
+  socket_.enableHeartbeat(20000U, 5000U, 2U);
+
   // The official Xiaozhi implementation does not request a WebSocket
   // subprotocol; only the four documented authentication/protocol headers are
   // sent.  An unsolicited subprotocol can be accepted by the HTTP upgrade and

@@ -18,6 +18,7 @@ void ConversationController::dispatch(AppEventType event) {
     case AppEventType::StopListening:
       if (state_ == AppState::Listening) {
         actions_.setMicrophoneListening(false);
+        actions_.sendStopListening();
         state_ = stateBeforeListening_ == AppState::AwaitingConfirmation
                      ? AppState::AwaitingConfirmation
                      : AppState::Idle;

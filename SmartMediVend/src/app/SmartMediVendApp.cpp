@@ -141,12 +141,29 @@ void SmartMediVendApp::process() {
 
 void SmartMediVendApp::setMicrophoneListening(bool listening) {
   audio_.setListening(listening);
+  if (!listening || session_.state() != network::SessionState::Ready) return;
+
+  // Use Xiaozhi auto-stop mode for the physical short-press UX: one press starts
+  // capture, server VAD finalizes the utterance, then STT/TTS can arrive without
+  // requiring a second button press. When STT arrives we stop local capture only;
+  // an explicit button stop is sent by sendStopListening().
+  const std::string message =
+      "{\"session_id\":\"" + jsonEscape(session_.sessionId()) +
+      "\",\"type\":\"listen\",\"state\":\"start\","
+      "\"mode\":\"auto\"}";
+  if (!session_.sendText(message)) {
+    health_.recordProtocolError();
+  }
+}
+
+void SmartMediVendApp::sendStopListening() {
   if (session_.state() != network::SessionState::Ready) return;
   const std::string message =
       "{\"session_id\":\"" + jsonEscape(session_.sessionId()) +
-      "\",\"type\":\"listen\",\"state\":\"" +
-      (listening ? "start\",\"mode\":\"manual" : "stop") + "\"}";
-  session_.sendText(message);
+      "\",\"type\":\"listen\",\"state\":\"stop\"}";
+  if (!session_.sendText(message)) {
+    health_.recordProtocolError();
+  }
 }
 
 void SmartMediVendApp::requestVending() {
@@ -238,7 +255,12 @@ void SmartMediVendApp::onSessionText(std::string_view text) {
       break;
     case protocol::TextMessageType::TtsStart:
       conversation_.dispatch(AppEventType::TtsStarted);
-      renderUi("Dang thong bao ket qua cuc bo");
+      renderUi("Dang phat cau tra loi");
+      break;
+    case protocol::TextMessageType::TtsSentenceStart:
+      if (!parsed.text.empty()) {
+        renderUi(parsed.text);
+      }
       break;
     case protocol::TextMessageType::TtsStop:
       if (candidate_.offered() && !candidateId_.empty()) {
@@ -603,7 +625,7 @@ void SmartMediVendApp::processButton() {
     conversation_.dispatch(AppEventType::StartListening);
   }
   renderUi(conversation_.state() == AppState::Listening
-               ? "Dang nghe... nhan ngan de dung"
+               ? "Dang nghe... noi xong se tu dong xu ly"
                : kNoCandidateDetail);
 }
 
@@ -700,6 +722,9 @@ void SmartMediVendApp::handleMcp(std::string_view envelope) {
 void SmartMediVendApp::handleStt(std::string_view transcript,
                                  uint32_t nowMs) {
   conversation_.dispatch(AppEventType::SttReceived);
+  if (!transcript.empty()) {
+    renderUi(transcript);
+  }
   if (!candidate_.offered() || !confirmation_.isArmed()) return;
   const auto intent = vending::ConfirmationGate::classify(transcript);
   if (intent == vending::ConfirmationIntent::Reject) {

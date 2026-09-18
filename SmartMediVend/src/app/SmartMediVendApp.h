@@ -38,6 +38,7 @@ class SmartMediVendApp final : public IConversationActions,
   void process();
 
   void setMicrophoneListening(bool listening) override;
+  void sendStopListening() override;
   void requestVending() override;
   void invalidateCandidate() override;
   void invalidateCloudContext() override;
